@@ -1,0 +1,243 @@
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getWorkoutCombos, Workout } from '../data/workouts';
+
+export interface WorkoutRunConfig {
+  workSeconds: number;
+  restSeconds: number;
+}
+
+interface Props {
+  workout: Workout;
+  onBack: () => void;
+  onStart: (config: WorkoutRunConfig) => void;
+}
+
+const WORK_STEP = 15;
+const WORK_MIN = 30;
+const WORK_MAX = 300;
+
+const REST_STEP = 10;
+const REST_MIN = 10;
+const REST_MAX = 120;
+
+function formatDuration(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+export default function WorkoutSetupScreen({ workout, onBack, onStart }: Props) {
+  const insets = useSafeAreaInsets();
+  const [workSeconds, setWorkSeconds] = useState(workout.workSeconds);
+  const [restSeconds, setRestSeconds] = useState(workout.restSeconds);
+  const combos = getWorkoutCombos(workout);
+
+  const totalSeconds = workout.rounds * workSeconds + (workout.rounds - 1) * restSeconds;
+
+  return (
+    <View style={styles.container}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <TouchableOpacity onPress={onBack} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <Text style={styles.backArrow}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{workout.name}</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}>
+
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryText}>
+            {workout.rounds} rounds · {formatDuration(totalSeconds)} total
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ROUND DURATION</Text>
+          <View style={styles.stepperRow}>
+            <TouchableOpacity
+              style={styles.stepperBtn}
+              activeOpacity={0.7}
+              onPress={() => setWorkSeconds(v => clamp(v - WORK_STEP, WORK_MIN, WORK_MAX))}>
+              <Text style={styles.stepperBtnText}>−</Text>
+            </TouchableOpacity>
+            <Text style={styles.stepperValue}>{formatDuration(workSeconds)}</Text>
+            <TouchableOpacity
+              style={styles.stepperBtn}
+              activeOpacity={0.7}
+              onPress={() => setWorkSeconds(v => clamp(v + WORK_STEP, WORK_MIN, WORK_MAX))}>
+              <Text style={styles.stepperBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>REST DURATION</Text>
+          <View style={styles.stepperRow}>
+            <TouchableOpacity
+              style={styles.stepperBtn}
+              activeOpacity={0.7}
+              onPress={() => setRestSeconds(v => clamp(v - REST_STEP, REST_MIN, REST_MAX))}>
+              <Text style={styles.stepperBtnText}>−</Text>
+            </TouchableOpacity>
+            <Text style={styles.stepperValue}>{formatDuration(restSeconds)}</Text>
+            <TouchableOpacity
+              style={styles.stepperBtn}
+              activeOpacity={0.7}
+              onPress={() => setRestSeconds(v => clamp(v + REST_STEP, REST_MIN, REST_MAX))}>
+              <Text style={styles.stepperBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>COMBOS IN THIS WORKOUT</Text>
+          {combos.map(combo => (
+            <View key={combo.id} style={styles.comboCard}>
+              <Text style={styles.comboName}>{combo.name}</Text>
+              <Text style={styles.comboSequence}>{combo.sequence.join('  ')}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.scrollPad} />
+      </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+        <TouchableOpacity
+          style={styles.startButton}
+          activeOpacity={0.85}
+          onPress={() => onStart({ workSeconds, restSeconds })}>
+          <Text style={styles.startButtonText}>START WORKOUT</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#141416',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1C1C24',
+  },
+  backArrow: {
+    fontSize: 32,
+    color: '#FFFFFF',
+    width: 40,
+    textAlign: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  headerSpacer: {
+    width: 40,
+  },
+  scroll: { flex: 1 },
+  scrollContent: { padding: 20 },
+  scrollPad: { height: 16 },
+  summaryRow: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  summaryText: {
+    fontSize: 14,
+    color: '#8B8B9E',
+    fontWeight: '500',
+  },
+  section: {
+    marginTop: 20,
+    gap: 12,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#8B8B9E',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  stepperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1C1C24',
+    borderRadius: 14,
+    paddingVertical: 12,
+    gap: 24,
+  },
+  stepperBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#2A2A32',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperBtnText: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  stepperValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    minWidth: 90,
+    textAlign: 'center',
+  },
+  comboCard: {
+    backgroundColor: '#1C1C24',
+    borderRadius: 12,
+    padding: 14,
+    gap: 4,
+  },
+  comboName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  comboSequence: {
+    fontSize: 13,
+    color: '#E83535',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#1C1C24',
+  },
+  startButton: {
+    backgroundColor: '#D42020',
+    borderRadius: 14,
+    paddingVertical: 18,
+    alignItems: 'center',
+  },
+  startButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+});

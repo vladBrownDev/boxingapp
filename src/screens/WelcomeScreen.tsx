@@ -59,7 +59,7 @@ export default function WelcomeScreen({ onStartFree, onSignIn }: Props) {
         {/* Logo image */}
         <View style={styles.logoSection}>
           <Image
-            source={require('../media/logo.png')}
+            source={require('../media/logo-no-bg-sm.png')}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -162,8 +162,8 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   logo: {
-    width: 200,
-    height: 200,
+    width: 300,
+    height: 300,
   },
   heroSection: {
     alignItems: 'center',
