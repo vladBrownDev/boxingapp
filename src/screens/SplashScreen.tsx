@@ -7,14 +7,15 @@ import {
   Text,
   View,
 } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/types';
+import { loadAuthState } from '../storage/authStorage';
 
 const { width } = Dimensions.get('window');
 
-interface Props {
-  onFinish: () => void;
-}
+type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
-export default function SplashScreen({ onFinish }: Props) {
+export default function SplashScreen({ navigation }: Props) {
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(0.8)).current;
   const taglineOpacity = useRef(new Animated.Value(0)).current;
@@ -46,9 +47,15 @@ export default function SplashScreen({ onFinish }: Props) {
         useNativeDriver: false,
       }),
     ]).start(() => {
-      setTimeout(onFinish, 200);
+      setTimeout(async () => {
+        const authState = await loadAuthState();
+        navigation.reset({
+          index: 0,
+          routes: [{ name: authState.isLoggedIn ? 'Dashboard' : 'Welcome' }],
+        });
+      }, 200);
     });
-  }, []);
+  }, [navigation]);
 
   return (
     <View style={styles.container}>

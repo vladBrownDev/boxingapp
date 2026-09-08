@@ -8,14 +8,23 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/types';
+import { loginAsGuest } from '../storage/authStorage';
 
-interface Props {
-  onStartFree: () => void;
-  onSignIn: () => void;
-}
+type Props = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
 
-export default function WelcomeScreen({ onStartFree, onSignIn }: Props) {
+export default function WelcomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+
+  const goToDashboard = () => {
+    navigation.reset({ index: 0, routes: [{ name: 'Dashboard' }] });
+  };
+
+  const handleStartFree = async () => {
+    await loginAsGuest();
+    goToDashboard();
+  };
   const fadeIn = useRef(new Animated.Value(0)).current;
   const slideUp = useRef(new Animated.Value(40)).current;
 
@@ -94,14 +103,14 @@ export default function WelcomeScreen({ onStartFree, onSignIn }: Props) {
         <View style={styles.ctaSection}>
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={onStartFree}
+            onPress={handleStartFree}
             activeOpacity={0.85}>
             <Text style={styles.primaryButtonText}>Start Training Free</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.secondaryButton}
-            onPress={onSignIn}
+            onPress={goToDashboard}
             activeOpacity={0.7}>
             <Text style={styles.secondaryButtonText}>
               Already have an account?{' '}

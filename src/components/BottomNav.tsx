@@ -1,20 +1,27 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import HomeIcon from '../media/home.svg';
+import WorkoutsIcon from '../media/workouts.svg';
+import StatsIcon from '../media/stats.svg';
+import MenuIcon from '../media/menu.svg';
 
 export type NavTab = 'home' | 'browse' | 'progress' | 'menu';
+
+const ACTIVE_COLOR = '#FFFFFF';
+const INACTIVE_COLOR = '#D42020';
+
+const TABS: { key: NavTab; label: string; Icon: React.FC<{ width: number; height: number; color: string }> }[] = [
+  { key: 'home',     label: 'Home',     Icon: HomeIcon },
+  { key: 'browse',   label: 'Browse',   Icon: WorkoutsIcon },
+  { key: 'progress', label: 'Progress', Icon: StatsIcon },
+  { key: 'menu',     label: 'Menu',     Icon: MenuIcon },
+];
 
 interface Props {
   active: NavTab;
   onPress: (tab: NavTab) => void;
 }
-
-const TABS: { key: NavTab; label: string; icon: string }[] = [
-  { key: 'home',     label: 'Home',     icon: '🏠' },
-  { key: 'browse',   label: 'Browse',   icon: '🥊' },
-  { key: 'progress', label: 'Progress', icon: '📊' },
-  { key: 'menu',     label: 'Menu',     icon: '☰' },
-];
 
 export default function BottomNav({ active, onPress }: Props) {
   const insets = useSafeAreaInsets();
@@ -23,21 +30,18 @@ export default function BottomNav({ active, onPress }: Props) {
     <View style={[styles.container, { paddingBottom: insets.bottom || 12 }]}>
       <View style={styles.border} />
       <View style={styles.row}>
-        {TABS.map(tab => {
-          const isActive = tab.key === active;
+        {TABS.map(({ key, label, Icon }) => {
+          const isActive = key === active;
           return (
             <TouchableOpacity
-              key={tab.key}
+              key={key}
               style={styles.tab}
-              onPress={() => onPress(tab.key)}
+              onPress={() => onPress(key)}
               activeOpacity={0.7}>
-              <Text style={[styles.icon, isActive && styles.iconActive]}>
-                {tab.icon}
-              </Text>
+              <Icon width={22} height={22} color={isActive ? ACTIVE_COLOR : INACTIVE_COLOR} />
               <Text style={[styles.label, isActive && styles.labelActive]}>
-                {tab.label}
+                {label}
               </Text>
-              {isActive && <View style={styles.activeDot} />}
             </TouchableOpacity>
           );
         })}
@@ -65,27 +69,13 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     gap: 3,
   },
-  icon: {
-    fontSize: 20,
-    opacity: 0.4,
-  },
-  iconActive: {
-    opacity: 1,
-  },
   label: {
     fontSize: 11,
-    color: '#555566',
+    color: INACTIVE_COLOR,
     fontWeight: '500',
   },
   labelActive: {
-    color: '#D42020',
+    color: ACTIVE_COLOR,
     fontWeight: '700',
-  },
-  activeDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#D42020',
-    marginTop: 2,
   },
 });

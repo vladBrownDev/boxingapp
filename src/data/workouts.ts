@@ -1,4 +1,5 @@
 import { Combo, ComboLevel, getComboById } from './combos';
+import { PUNCH_BY_CODE, PunchCode } from './punchNotation';
 
 export interface Workout {
   id: string;
@@ -55,4 +56,65 @@ export function getWorkoutCombos(workout: Workout): Combo[] {
   return workout.comboIds
     .map(getComboById)
     .filter((combo): combo is Combo => combo !== undefined);
+}
+
+export function getWorkoutDurationMinutes(workout: Workout): number {
+  const totalSeconds =
+    workout.rounds * workout.workSeconds + (workout.rounds - 1) * workout.restSeconds;
+  return Math.round(totalSeconds / 60);
+}
+
+/** Every distinct punch code thrown across a workout's combos. */
+function getWorkoutPunchCodes(workout: Workout): PunchCode[] {
+  const codes = new Set<PunchCode>();
+  for (const combo of getWorkoutCombos(workout)) {
+    for (const step of combo.sequence) {
+      for (const move of step.split('+')) {
+        const punch = (PUNCH_BY_CODE as Record<string, { code: PunchCode } | undefined>)[move];
+        if (punch) {
+          codes.add(punch.code);
+        }
+      }
+    }
+  }
+  return Array.from(codes);
+}
+
+export interface SuggestedWorkout {
+  workout: Workout;
+  /** The least-trained punches (globally) that this workout would exercise. */
+  focusPunchLabels: string[];
+}
+
+/** Picks the workout whose combos best cover the punches the user has thrown in the
+ * fewest rounds, so training stays balanced instead of favoring the same few punches. */
+export function getSuggestedWorkout(
+  punchBreakdown: { code: PunchCode; label: string; roundsUsed: number }[],
+): SuggestedWorkout | undefined {
+  const roundsByCode = new Map(punchBreakdown.map(p => [p.code, p.roundsUsed]));
+  const labelByCode = new Map(punchBreakdown.map(p => [p.code, p.label]));
+
+  let best: { workout: Workout; score: number; codes: PunchCode[] } | undefined;
+  for (const workout of WORKOUTS) {
+    const codes = getWorkoutPunchCodes(workout);
+    if (codes.length === 0) {
+      continue;
+    }
+    const score =
+      codes.reduce((sum, code) => sum + (roundsByCode.get(code) ?? 0), 0) / codes.length;
+    if (!best || score < best.score) {
+      best = { workout, score, codes };
+    }
+  }
+  if (!best) {
+    return undefined;
+  }
+
+  const focusPunchLabels = best.codes
+    .slice()
+    .sort((a, b) => (roundsByCode.get(a) ?? 0) - (roundsByCode.get(b) ?? 0))
+    .slice(0, 2)
+    .map(code => labelByCode.get(code) ?? code);
+
+  return { workout: best.workout, focusPunchLabels };
 }

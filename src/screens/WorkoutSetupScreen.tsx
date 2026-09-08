@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getWorkoutCombos, Workout } from '../data/workouts';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { getWorkoutCombos } from '../data/workouts';
+import { RootStackParamList } from '../navigation/types';
 
 export interface WorkoutRunConfig {
   workSeconds: number;
   restSeconds: number;
 }
 
-interface Props {
-  workout: Workout;
-  onBack: () => void;
-  onStart: (config: WorkoutRunConfig) => void;
-}
+type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutSetup'>;
 
-const WORK_STEP = 15;
+const WORK_STEP = 10;
 const WORK_MIN = 30;
 const WORK_MAX = 300;
 
@@ -32,7 +30,8 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-export default function WorkoutSetupScreen({ workout, onBack, onStart }: Props) {
+export default function WorkoutSetupScreen({ navigation, route }: Props) {
+  const { workout } = route.params;
   const insets = useSafeAreaInsets();
   const [workSeconds, setWorkSeconds] = useState(workout.workSeconds);
   const [restSeconds, setRestSeconds] = useState(workout.restSeconds);
@@ -43,7 +42,7 @@ export default function WorkoutSetupScreen({ workout, onBack, onStart }: Props) 
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity onPress={onBack} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+        <TouchableOpacity onPress={navigation.goBack} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Text style={styles.backArrow}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{workout.name}</Text>
@@ -116,7 +115,12 @@ export default function WorkoutSetupScreen({ workout, onBack, onStart }: Props) 
         <TouchableOpacity
           style={styles.startButton}
           activeOpacity={0.85}
-          onPress={() => onStart({ workSeconds, restSeconds })}>
+          onPress={() =>
+            navigation.navigate('WorkoutPlayer', {
+              workout,
+              config: { workSeconds, restSeconds },
+            })
+          }>
           <Text style={styles.startButtonText}>START WORKOUT</Text>
         </TouchableOpacity>
       </View>

@@ -7,29 +7,13 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BottomNav, { NavTab } from '../components/BottomNav';
+import { getSuggestedWorkout, getWorkoutDurationMinutes, WORKOUTS } from '../data/workouts';
+import { useFavorites } from '../hooks/useFavorites';
 import { useWorkoutStats } from '../hooks/useWorkoutStats';
-
-interface WorkoutItem {
-  id: string;
-  name: string;
-  duration: number;
-  rounds: number;
-  lastSession: string;
-  isFavorite: boolean;
-}
-
-const FEATURED_COMBO = {
-  name: '1-2-Cross',
-  level: 'Intermediate',
-  description: 'Classic jab-cross combination. Perfect for building hand speed and timing.',
-};
-
-const INITIAL_WORKOUTS: WorkoutItem[] = [
-  { id: '1', name: 'Beginner Box', duration: 3, rounds: 12, lastSession: '2 days ago', isFavorite: true },
-  { id: '2', name: 'HIIT Combos', duration: 5, rounds: 8, lastSession: 'Today at 7am', isFavorite: true },
-  { id: '3', name: 'Jab-Cross-Hook', duration: 3, rounds: 10, lastSession: 'Yesterday', isFavorite: false },
-];
+import { RootStackParamList } from '../navigation/types';
+import { formatSessionDate } from '../storage/workoutStorage';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -38,21 +22,40 @@ function getGreeting(): string {
   return 'Ready for evening training?';
 }
 
-interface Props {
-  onStartWorkout: () => void;
-}
+type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 
-export default function DashboardScreen({ onStartWorkout }: Props) {
+export default function DashboardScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<NavTab>('home');
-  const [workouts, setWorkouts] = useState<WorkoutItem[]>(INITIAL_WORKOUTS);
   const greeting = useMemo(getGreeting, []);
-  const { todayStats } = useWorkoutStats();
+  const { sessions, weekStats, punchBreakdown } = useWorkoutStats();
+  const { favoriteIds, toggleFavorite } = useFavorites();
 
-  const toggleFavorite = (id: string) => {
-    setWorkouts(prev =>
-      prev.map(w => w.id === id ? { ...w, isFavorite: !w.isFavorite } : w),
-    );
+  const suggested = useMemo(() => getSuggestedWorkout(punchBreakdown), [punchBreakdown]);
+
+  const recentWorkouts = useMemo(
+    () =>
+      sessions.slice(0, 5).map(session => {
+        const workout = WORKOUTS.find(w => w.id === session.workoutId);
+        return {
+          session,
+          workout,
+          isFavorite: favoriteIds.includes(session.workoutId),
+        };
+      }),
+    [sessions, favoriteIds],
+  );
+
+  const handleTabPress = (tab: NavTab) => {
+    if (tab === 'browse') {
+      navigation.navigate('WorkoutList');
+      return;
+    }
+    if (tab === 'progress') {
+      navigation.navigate('Stats');
+      return;
+    }
+    setActiveTab(tab);
   };
 
   return (
@@ -62,9 +65,6 @@ export default function DashboardScreen({ onStartWorkout }: Props) {
         <Text style={styles.logoText}>
           PUNCH<Text style={styles.logoAccent}>FACTORY</Text>
         </Text>
-        <TouchableOpacity style={styles.settingsBtn} activeOpacity={0.7}>
-          <Text style={styles.settingsIcon}>⚙️</Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -77,7 +77,7 @@ export default function DashboardScreen({ onStartWorkout }: Props) {
           <Text style={styles.greeting}>{greeting}</Text>
           <TouchableOpacity
             style={styles.startButton}
-            onPress={onStartWorkout}
+            onPress={() => navigation.navigate('WorkoutList')}
             activeOpacity={0.85}>
             <View style={styles.startButtonInner}>
               <Text style={styles.startButtonIcon}>▶</Text>
@@ -86,61 +86,87 @@ export default function DashboardScreen({ onStartWorkout }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Today's Stats */}
+        {/* This Week's Stats */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊  TODAY'S STATS</Text>
+          <Text style={styles.sectionTitle}>📊  THIS WEEK'S STATS</Text>
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <Text style={styles.statValue}>{todayStats.sessions}</Text>
+              <Text style={styles.statValue}>{weekStats.sessions}</Text>
               <Text style={styles.statLabel}>Sessions</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statCard}>
-              <Text style={styles.statValue}>{todayStats.minutes}</Text>
+              <Text style={styles.statValue}>{weekStats.minutes}</Text>
               <Text style={styles.statLabel}>Minutes</Text>
             </View>
           </View>
         </View>
 
-        {/* Featured Combo */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⭐  FEATURED COMBO</Text>
-          <View style={styles.featuredCard}>
-            <View style={styles.featuredTop}>
-              <Text style={styles.featuredName}>{FEATURED_COMBO.name}</Text>
-              <View style={styles.levelBadge}>
-                <Text style={styles.levelText}>{FEATURED_COMBO.level}</Text>
+        {/* Suggested Workout */}
+        {sessions.length > 0 && suggested && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>🎯  SUGGESTED FOR YOU</Text>
+            <View style={styles.suggestedCard}>
+              <View style={styles.suggestedTop}>
+                <Text style={styles.suggestedName}>{suggested.workout.name}</Text>
+                <View style={styles.levelBadge}>
+                  <Text style={styles.levelText}>{suggested.workout.level}</Text>
+                </View>
               </View>
-            </View>
-            <Text style={styles.featuredDesc}>{FEATURED_COMBO.description}</Text>
-            <TouchableOpacity style={styles.tryNowBtn} activeOpacity={0.8}>
-              <Text style={styles.tryNowText}>▶  Try Now</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Your Workouts */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📋  YOUR WORKOUTS</Text>
-          {workouts.map(workout => (
-            <View key={workout.id} style={styles.workoutCard}>
-              <View style={styles.workoutInfo}>
-                <Text style={styles.workoutName}>{workout.name}</Text>
-                <Text style={styles.workoutMeta}>
-                  {workout.duration} min × {workout.rounds} rounds
+              <Text style={styles.suggestedMeta}>
+                {getWorkoutDurationMinutes(suggested.workout)} min × {suggested.workout.rounds} rounds
+              </Text>
+              {suggested.focusPunchLabels.length > 0 && (
+                <Text style={styles.suggestedFocus}>
+                  Focus: {suggested.focusPunchLabels.join(', ')} — your least-trained punches
                 </Text>
-                <Text style={styles.workoutLast}>Last: {workout.lastSession}</Text>
-              </View>
+              )}
               <TouchableOpacity
-                onPress={() => toggleFavorite(workout.id)}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                activeOpacity={0.7}>
-                <Text style={styles.heartIcon}>
-                  {workout.isFavorite ? '❤️' : '🤍'}
-                </Text>
+                style={styles.suggestedBtn}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate('WorkoutSetup', { workout: suggested.workout })}>
+                <Text style={styles.suggestedBtnText}>▶  Start</Text>
               </TouchableOpacity>
             </View>
-          ))}
+          </View>
+        )}
+
+        {/* Recent Workouts */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📋  RECENT WORKOUTS</Text>
+          {recentWorkouts.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>
+                No workouts yet. Start one above to see your history here.
+              </Text>
+            </View>
+          ) : (
+            recentWorkouts.map(({ session, workout, isFavorite }) => (
+              <View key={session.id} style={styles.workoutCard}>
+                <TouchableOpacity
+                  style={styles.workoutInfo}
+                  activeOpacity={0.7}
+                  disabled={!workout}
+                  onPress={() => workout && navigation.navigate('WorkoutSetup', { workout })}>
+                  <Text style={styles.workoutName}>{session.workoutName}</Text>
+                  <Text style={styles.workoutMeta}>
+                    {workout
+                      ? `${getWorkoutDurationMinutes(workout)} min × ${workout.rounds} rounds`
+                      : `${session.roundsCompleted} rounds`}
+                  </Text>
+                  <Text style={styles.workoutLast}>{formatSessionDate(session.timestamp)}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => toggleFavorite(session.workoutId)}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  activeOpacity={0.7}>
+                  <Text style={styles.heartIcon}>
+                    {isFavorite ? '❤️' : '🤍'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
         </View>
 
         {/* Premium Banner */}
@@ -160,7 +186,7 @@ export default function DashboardScreen({ onStartWorkout }: Props) {
         <View style={styles.scrollPad} />
       </ScrollView>
 
-      <BottomNav active={activeTab} onPress={setActiveTab} />
+      <BottomNav active={activeTab} onPress={handleTabPress} />
     </View>
   );
 }
@@ -287,8 +313,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
-  // Featured combo
-  featuredCard: {
+  // Suggested workout
+  suggestedCard: {
     backgroundColor: '#1C1C24',
     borderRadius: 14,
     padding: 16,
@@ -296,12 +322,12 @@ const styles = StyleSheet.create({
     borderLeftColor: '#D42020',
     gap: 10,
   },
-  featuredTop: {
+  suggestedTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  featuredName: {
+  suggestedName: {
     fontSize: 18,
     fontWeight: '700',
     color: '#FFFFFF',
@@ -319,19 +345,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
-  featuredDesc: {
-    fontSize: 14,
+  suggestedMeta: {
+    fontSize: 13,
     color: '#8B8B9E',
-    lineHeight: 20,
   },
-  tryNowBtn: {
+  suggestedFocus: {
+    fontSize: 13,
+    color: '#8B8B9E',
+    lineHeight: 18,
+  },
+  suggestedBtn: {
     alignSelf: 'flex-start',
     paddingVertical: 8,
     paddingHorizontal: 16,
     backgroundColor: '#D42020',
     borderRadius: 8,
   },
-  tryNowText: {
+  suggestedBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
@@ -367,6 +397,20 @@ const styles = StyleSheet.create({
   heartIcon: {
     fontSize: 22,
     marginLeft: 12,
+  },
+
+  // Empty state
+  emptyCard: {
+    backgroundColor: '#1C1C24',
+    borderRadius: 14,
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 13,
+    color: '#8B8B9E',
+    textAlign: 'center',
+    lineHeight: 18,
   },
 
   // Premium banner

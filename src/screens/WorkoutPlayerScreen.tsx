@@ -1,17 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Combo } from '../data/combos';
 import { describeMove } from '../data/punchNotation';
 import { getWorkoutCombos, Workout } from '../data/workouts';
-import { addSession } from '../storage/workoutStorage';
-import { WorkoutRunConfig } from './WorkoutSetupScreen';
+import { RootStackParamList } from '../navigation/types';
+import { addSession, WorkoutSession } from '../storage/workoutStorage';
 
-interface Props {
-  workout: Workout;
-  config: WorkoutRunConfig;
-  onExit: () => void;
-  onComplete: () => void;
-}
+type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutPlayer'>;
 
 type Phase = 'work' | 'rest' | 'done';
 
@@ -27,9 +24,57 @@ function formatTime(totalSeconds: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-export default function WorkoutPlayerScreen({ workout, config, onExit, onComplete }: Props) {
+/** Builds the session record for whatever progress has been made so far, whether the
+ * workout finished normally or the player exited mid-round. */
+function buildSession(
+  workout: Workout,
+  combos: Combo[],
+  workSeconds: number,
+  restSeconds: number,
+  state: PlayerState,
+): WorkoutSession {
+  const roundsCompleted =
+    state.phase === 'done'
+      ? workout.rounds
+      : state.phase === 'work'
+      ? state.roundIndex
+      : state.roundIndex + 1;
+
+  let activeDuration = state.roundIndex * (workSeconds + restSeconds);
+  if (state.phase === 'work') {
+    activeDuration += workSeconds - state.secondsLeft;
+  } else if (state.phase === 'rest') {
+    activeDuration += workSeconds + (restSeconds - state.secondsLeft);
+  } else {
+    activeDuration = workout.rounds * workSeconds + (workout.rounds - 1) * restSeconds;
+  }
+
+  const comboIds = Array.from(
+    { length: roundsCompleted },
+    (_, i) => combos[i % combos.length].id,
+  );
+
+  return {
+    id: String(Date.now()),
+    timestamp: Date.now(),
+    workoutId: workout.id,
+    workoutName: workout.name,
+    level: workout.level,
+    rounds: workout.rounds,
+    roundsCompleted,
+    workTime: workSeconds,
+    restTime: restSeconds,
+    totalDuration: workout.rounds * workSeconds + (workout.rounds - 1) * restSeconds,
+    activeDuration,
+    comboIds,
+    completed: state.phase === 'done',
+  };
+}
+
+export default function WorkoutPlayerScreen({ navigation, route }: Props) {
+  const { workout, config } = route.params;
   const insets = useSafeAreaInsets();
-  const combos = getWorkoutCombos(workout);
+  const combos = useMemo(() => getWorkoutCombos(workout), [workout]);
   const { workSeconds, restSeconds } = config;
 
   const [state, setState] = useState<PlayerState>({
@@ -39,6 +84,22 @@ export default function WorkoutPlayerScreen({ workout, config, onExit, onComplet
   });
   const [isPaused, setIsPaused] = useState(false);
   const hasLoggedRef = useRef(false);
+
+  const logSession = useCallback(
+    (current: PlayerState) => {
+      if (hasLoggedRef.current) {
+        return;
+      }
+      hasLoggedRef.current = true;
+      addSession(buildSession(workout, combos, workSeconds, restSeconds, current));
+    },
+    [workout, combos, workSeconds, restSeconds],
+  );
+
+  const exitToDashboard = () => {
+    logSession(state);
+    navigation.popToTop();
+  };
 
   useEffect(() => {
     if (isPaused || state.phase === 'done') {
@@ -65,21 +126,10 @@ export default function WorkoutPlayerScreen({ workout, config, onExit, onComplet
   }, [isPaused, state.phase, workSeconds, restSeconds, workout.rounds]);
 
   useEffect(() => {
-    if (state.phase === 'done' && !hasLoggedRef.current) {
-      hasLoggedRef.current = true;
-      const totalDuration =
-        workout.rounds * workSeconds + (workout.rounds - 1) * restSeconds;
-      addSession({
-        id: String(Date.now()),
-        timestamp: Date.now(),
-        comboName: workout.name,
-        rounds: workout.rounds,
-        workTime: workSeconds,
-        restTime: restSeconds,
-        totalDuration,
-      });
+    if (state.phase === 'done') {
+      logSession(state);
     }
-  }, [state.phase, workout, workSeconds, restSeconds]);
+  }, [state, logSession]);
 
   if (state.phase === 'done') {
     return (
@@ -88,7 +138,7 @@ export default function WorkoutPlayerScreen({ workout, config, onExit, onComplet
         <Text style={styles.doneSubtitle}>
           {workout.rounds} rounds · {workout.name}
         </Text>
-        <TouchableOpacity style={styles.primaryButton} activeOpacity={0.85} onPress={onComplete}>
+        <TouchableOpacity style={styles.primaryButton} activeOpacity={0.85} onPress={exitToDashboard}>
           <Text style={styles.primaryButtonText}>DONE</Text>
         </TouchableOpacity>
       </View>
@@ -103,7 +153,7 @@ export default function WorkoutPlayerScreen({ workout, config, onExit, onComplet
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity onPress={onExit} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+        <TouchableOpacity onPress={exitToDashboard} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Text style={styles.exitText}>Exit</Text>
         </TouchableOpacity>
         <Text style={styles.roundIndicator}>

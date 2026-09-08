@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getWorkoutCombos, Workout, WORKOUTS } from '../data/workouts';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import BottomNav, { NavTab } from '../components/BottomNav';
+import { getWorkoutCombos, getWorkoutDurationMinutes, Workout, WORKOUTS } from '../data/workouts';
+import { RootStackParamList } from '../navigation/types';
 
-interface Props {
-  onSelectWorkout: (workout: Workout) => void;
-  onBack: () => void;
-}
+type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutList'>;
 
 const LEVEL_COLORS: Record<Workout['level'], string> = {
   Beginner: '#3DBE5C',
@@ -14,19 +14,26 @@ const LEVEL_COLORS: Record<Workout['level'], string> = {
   Advanced: '#E83535',
 };
 
-function formatMinutes(workout: Workout): string {
-  const totalSeconds =
-    workout.rounds * workout.workSeconds + (workout.rounds - 1) * workout.restSeconds;
-  return `${Math.round(totalSeconds / 60)} min`;
-}
-
-export default function WorkoutListScreen({ onSelectWorkout, onBack }: Props) {
+export default function WorkoutListScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const [activeTab, setActiveTab] = useState<NavTab>('browse');
+
+  const handleTabPress = (tab: NavTab) => {
+    if (tab === 'home') {
+      navigation.navigate('Dashboard');
+      return;
+    }
+    if (tab === 'progress') {
+      navigation.navigate('Stats');
+      return;
+    }
+    setActiveTab(tab);
+  };
 
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity onPress={onBack} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+        <TouchableOpacity onPress={navigation.goBack} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Text style={styles.backArrow}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Workouts</Text>
@@ -44,7 +51,7 @@ export default function WorkoutListScreen({ onSelectWorkout, onBack }: Props) {
               key={workout.id}
               style={styles.card}
               activeOpacity={0.8}
-              onPress={() => onSelectWorkout(workout)}>
+              onPress={() => navigation.navigate('WorkoutSetup', { workout })}>
               <View style={styles.cardTop}>
                 <Text style={styles.cardName}>{workout.name}</Text>
                 <View
@@ -58,7 +65,7 @@ export default function WorkoutListScreen({ onSelectWorkout, onBack }: Props) {
                 </View>
               </View>
               <Text style={styles.cardMeta}>
-                {workout.rounds} rounds · {formatMinutes(workout)}
+                {workout.rounds} rounds · {getWorkoutDurationMinutes(workout)} min
               </Text>
               <Text style={styles.cardCombos} numberOfLines={1}>
                 {combos.map(c => c.name).join(' · ')}
@@ -68,6 +75,8 @@ export default function WorkoutListScreen({ onSelectWorkout, onBack }: Props) {
         })}
         <View style={styles.scrollPad} />
       </ScrollView>
+
+      <BottomNav active={activeTab} onPress={handleTabPress} />
     </View>
   );
 }
