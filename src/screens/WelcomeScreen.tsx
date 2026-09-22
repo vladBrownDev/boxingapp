@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from '../i18n/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { loginAsGuest } from '../storage/authStorage';
 
@@ -16,6 +17,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
 
 export default function WelcomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const goToDashboard = () => {
     navigation.reset({ index: 0, routes: [{ name: 'Dashboard' }] });
@@ -76,24 +78,20 @@ export default function WelcomeScreen({ navigation }: Props) {
 
         {/* Hero Text */}
         <View style={styles.heroSection}>
-          <Text style={styles.headline}>
-            Professional Boxing{'\n'}Training in Your Pocket
-          </Text>
-          <Text style={styles.subheading}>
-            Learn combos. Train anytime.{'\n'}No sign-up needed.
-          </Text>
+          <Text style={styles.headline}>{t('welcome.headline')}</Text>
+          <Text style={styles.subheading}>{t('welcome.subheading')}</Text>
         </View>
 
         {/* Feature pills */}
         <View style={styles.pillsRow}>
           <View style={styles.pill}>
-            <Text style={styles.pillText}>100+ Combos</Text>
+            <Text style={styles.pillText}>{t('welcome.pill.combos')}</Text>
           </View>
           <View style={styles.pill}>
-            <Text style={styles.pillText}>Smart Timer</Text>
+            <Text style={styles.pillText}>{t('welcome.pill.timer')}</Text>
           </View>
           <View style={styles.pill}>
-            <Text style={styles.pillText}>Track Progress</Text>
+            <Text style={styles.pillText}>{t('welcome.pill.progress')}</Text>
           </View>
         </View>
 
@@ -105,7 +103,7 @@ export default function WelcomeScreen({ navigation }: Props) {
             style={styles.primaryButton}
             onPress={handleStartFree}
             activeOpacity={0.85}>
-            <Text style={styles.primaryButtonText}>Start Training Free</Text>
+            <Text style={styles.primaryButtonText}>{t('welcome.startFree')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -113,8 +111,8 @@ export default function WelcomeScreen({ navigation }: Props) {
             onPress={goToDashboard}
             activeOpacity={0.7}>
             <Text style={styles.secondaryButtonText}>
-              Already have an account?{' '}
-              <Text style={styles.signInLink}>Sign In</Text>
+              {t('welcome.haveAccount')}
+              <Text style={styles.signInLink}>{t('welcome.signIn')}</Text>
             </Text>
           </TouchableOpacity>
         </View>

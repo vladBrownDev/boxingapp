@@ -12,14 +12,16 @@ import BottomNav, { NavTab } from '../components/BottomNav';
 import { getSuggestedWorkout, getWorkoutDurationMinutes, WORKOUTS } from '../data/workouts';
 import { useFavorites } from '../hooks/useFavorites';
 import { useWorkoutStats } from '../hooks/useWorkoutStats';
+import { useTranslation } from '../i18n/LanguageContext';
+import { TranslationKey } from '../i18n/translations';
 import { RootStackParamList } from '../navigation/types';
 import { formatSessionDate } from '../storage/workoutStorage';
 
-function getGreeting(): string {
+function getGreetingKey(): TranslationKey {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning!';
-  if (hour < 17) return 'Good afternoon!';
-  return 'Ready for evening training?';
+  if (hour < 12) return 'dashboard.greeting.morning';
+  if (hour < 17) return 'dashboard.greeting.afternoon';
+  return 'dashboard.greeting.evening';
 }
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
@@ -27,7 +29,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 export default function DashboardScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<NavTab>('home');
-  const greeting = useMemo(getGreeting, []);
+  const { t, locale } = useTranslation();
+  const greeting = t(useMemo(getGreetingKey, []));
   const { sessions, weekStats, punchBreakdown } = useWorkoutStats();
   const { favoriteIds, toggleFavorite } = useFavorites();
 
@@ -53,6 +56,10 @@ export default function DashboardScreen({ navigation }: Props) {
     }
     if (tab === 'progress') {
       navigation.navigate('Stats');
+      return;
+    }
+    if (tab === 'menu') {
+      navigation.navigate('Menu');
       return;
     }
     setActiveTab(tab);
@@ -81,23 +88,23 @@ export default function DashboardScreen({ navigation }: Props) {
             activeOpacity={0.85}>
             <View style={styles.startButtonInner}>
               <Text style={styles.startButtonIcon}>▶</Text>
-              <Text style={styles.startButtonText}>START WORKOUT</Text>
+              <Text style={styles.startButtonText}>{t('dashboard.startWorkout')}</Text>
             </View>
           </TouchableOpacity>
         </View>
 
         {/* This Week's Stats */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊  THIS WEEK'S STATS</Text>
+          <Text style={styles.sectionTitle}>📊  {t('dashboard.statsTitle')}</Text>
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <Text style={styles.statValue}>{weekStats.sessions}</Text>
-              <Text style={styles.statLabel}>Sessions</Text>
+              <Text style={styles.statLabel}>{t('dashboard.sessions')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statCard}>
               <Text style={styles.statValue}>{weekStats.minutes}</Text>
-              <Text style={styles.statLabel}>Minutes</Text>
+              <Text style={styles.statLabel}>{t('dashboard.minutes')}</Text>
             </View>
           </View>
         </View>
@@ -105,27 +112,30 @@ export default function DashboardScreen({ navigation }: Props) {
         {/* Suggested Workout */}
         {sessions.length > 0 && suggested && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🎯  SUGGESTED FOR YOU</Text>
+            <Text style={styles.sectionTitle}>🎯  {t('dashboard.suggestedTitle')}</Text>
             <View style={styles.suggestedCard}>
               <View style={styles.suggestedTop}>
                 <Text style={styles.suggestedName}>{suggested.workout.name}</Text>
                 <View style={styles.levelBadge}>
-                  <Text style={styles.levelText}>{suggested.workout.level}</Text>
+                  <Text style={styles.levelText}>{t(`level.${suggested.workout.level}` as TranslationKey)}</Text>
                 </View>
               </View>
               <Text style={styles.suggestedMeta}>
-                {getWorkoutDurationMinutes(suggested.workout)} min × {suggested.workout.rounds} rounds
+                {t('dashboard.suggestedMeta', {
+                  minutes: getWorkoutDurationMinutes(suggested.workout),
+                  rounds: suggested.workout.rounds,
+                })}
               </Text>
               {suggested.focusPunchLabels.length > 0 && (
                 <Text style={styles.suggestedFocus}>
-                  Focus: {suggested.focusPunchLabels.join(', ')} — your least-trained punches
+                  {t('dashboard.suggestedFocus', { punches: suggested.focusPunchLabels.join(', ') })}
                 </Text>
               )}
               <TouchableOpacity
                 style={styles.suggestedBtn}
                 activeOpacity={0.8}
                 onPress={() => navigation.navigate('WorkoutSetup', { workout: suggested.workout })}>
-                <Text style={styles.suggestedBtnText}>▶  Start</Text>
+                <Text style={styles.suggestedBtnText}>▶  {t('dashboard.start')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -133,12 +143,10 @@ export default function DashboardScreen({ navigation }: Props) {
 
         {/* Recent Workouts */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📋  RECENT WORKOUTS</Text>
+          <Text style={styles.sectionTitle}>📋  {t('dashboard.recentTitle')}</Text>
           {recentWorkouts.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>
-                No workouts yet. Start one above to see your history here.
-              </Text>
+              <Text style={styles.emptyText}>{t('dashboard.emptyRecent')}</Text>
             </View>
           ) : (
             recentWorkouts.map(({ session, workout, isFavorite }) => (
@@ -151,10 +159,18 @@ export default function DashboardScreen({ navigation }: Props) {
                   <Text style={styles.workoutName}>{session.workoutName}</Text>
                   <Text style={styles.workoutMeta}>
                     {workout
-                      ? `${getWorkoutDurationMinutes(workout)} min × ${workout.rounds} rounds`
-                      : `${session.roundsCompleted} rounds`}
+                      ? t('dashboard.workoutMeta', {
+                          minutes: getWorkoutDurationMinutes(workout),
+                          rounds: workout.rounds,
+                        })
+                      : t(
+                          session.roundsCompleted === 1
+                            ? 'dashboard.roundsFallback_one'
+                            : 'dashboard.roundsFallback_other',
+                          { count: session.roundsCompleted },
+                        )}
                   </Text>
-                  <Text style={styles.workoutLast}>{formatSessionDate(session.timestamp)}</Text>
+                  <Text style={styles.workoutLast}>{formatSessionDate(session.timestamp, locale)}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => toggleFavorite(session.workoutId)}
@@ -174,10 +190,8 @@ export default function DashboardScreen({ navigation }: Props) {
           <View style={styles.premiumLeft}>
             <Text style={styles.premiumCrown}>👑</Text>
             <View>
-              <Text style={styles.premiumTitle}>Unlock Premium</Text>
-              <Text style={styles.premiumDesc}>
-                100+ combos · Advanced stats · Custom builder
-              </Text>
+              <Text style={styles.premiumTitle}>{t('dashboard.premiumTitle')}</Text>
+              <Text style={styles.premiumDesc}>{t('dashboard.premiumDesc')}</Text>
             </View>
           </View>
           <Text style={styles.premiumArrow}>›</Text>

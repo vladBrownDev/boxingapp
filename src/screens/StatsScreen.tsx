@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BottomNav, { NavTab } from '../components/BottomNav';
 import { useWorkoutStats } from '../hooks/useWorkoutStats';
+import { useTranslation } from '../i18n/LanguageContext';
+import { TranslationKey } from '../i18n/translations';
 import { RootStackParamList } from '../navigation/types';
 import {
   filterSessionsByPeriod,
@@ -16,16 +18,17 @@ import {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Stats'>;
 
-const PERIOD_OPTIONS: { key: StatsPeriod; label: string; rangeLabel: string }[] = [
-  { key: 'day', label: 'Day', rangeLabel: 'TODAY' },
-  { key: 'week', label: 'Week', rangeLabel: 'THIS WEEK' },
-  { key: 'month', label: 'Month', rangeLabel: 'THIS MONTH' },
+const PERIOD_OPTIONS: { key: StatsPeriod; labelKey: TranslationKey; rangeKey: TranslationKey }[] = [
+  { key: 'day', labelKey: 'stats.period.day', rangeKey: 'stats.range.day' },
+  { key: 'week', labelKey: 'stats.period.week', rangeKey: 'stats.range.week' },
+  { key: 'month', labelKey: 'stats.period.month', rangeKey: 'stats.range.month' },
 ];
 
 export default function StatsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<NavTab>('progress');
   const [period, setPeriod] = useState<StatsPeriod>('week');
+  const { t } = useTranslation();
   const { sessions, allTimeStats } = useWorkoutStats();
 
   const periodSessions = useMemo(
@@ -36,6 +39,7 @@ export default function StatsScreen({ navigation }: Props) {
   const workoutBreakdown = useMemo(() => getWorkoutBreakdown(periodSessions), [periodSessions]);
   const punchBreakdown = useMemo(() => getPunchBreakdown(periodSessions), [periodSessions]);
   const activePeriodOption = PERIOD_OPTIONS.find(option => option.key === period)!;
+  const activeRangeLabel = t(activePeriodOption.rangeKey);
 
   const recentSessions = sessions.slice(0, 8);
 
@@ -46,6 +50,10 @@ export default function StatsScreen({ navigation }: Props) {
     }
     if (tab === 'browse') {
       navigation.navigate('WorkoutList');
+      return;
+    }
+    if (tab === 'menu') {
+      navigation.navigate('Menu');
       return;
     }
     setActiveTab(tab);
@@ -66,8 +74,8 @@ export default function StatsScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}>
 
         <View style={styles.heroSection}>
-          <Text style={styles.pageTitle}>Progress</Text>
-          <Text style={styles.pageSubtitle}>Your training history at a glance</Text>
+          <Text style={styles.pageTitle}>{t('stats.pageTitle')}</Text>
+          <Text style={styles.pageSubtitle}>{t('stats.pageSubtitle')}</Text>
         </View>
 
         {/* Period Stats */}
@@ -87,26 +95,26 @@ export default function StatsScreen({ navigation }: Props) {
                     styles.periodOptionText,
                     period === option.key && styles.periodOptionTextActive,
                   ]}>
-                  {option.label}
+                  {t(option.labelKey)}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.sectionTitle}>🗓️  {activePeriodOption.rangeLabel}</Text>
+          <Text style={styles.sectionTitle}>🗓️  {activeRangeLabel}</Text>
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <Text style={styles.statValue}>{periodStats.sessions}</Text>
-              <Text style={styles.statLabel}>Sessions</Text>
+              <Text style={styles.statLabel}>{t('stats.sessions')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statCard}>
               <Text style={styles.statValue}>{periodStats.minutes}</Text>
-              <Text style={styles.statLabel}>Minutes</Text>
+              <Text style={styles.statLabel}>{t('stats.minutes')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statCard}>
               <Text style={styles.statValue}>{periodStats.rounds}</Text>
-              <Text style={styles.statLabel}>Rounds</Text>
+              <Text style={styles.statLabel}>{t('stats.rounds')}</Text>
             </View>
           </View>
         </View>
@@ -115,11 +123,11 @@ export default function StatsScreen({ navigation }: Props) {
         {sessions.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              📋  WORKOUT BREAKDOWN · {activePeriodOption.rangeLabel}
+              📋  {t('stats.workoutBreakdownTitle', { range: activeRangeLabel })}
             </Text>
             {workoutBreakdown.length === 0 ? (
               <View style={styles.emptyCard}>
-                <Text style={styles.emptyText}>No workouts trained in this period.</Text>
+                <Text style={styles.emptyText}>{t('stats.noWorkoutsPeriod')}</Text>
               </View>
             ) : (
               workoutBreakdown.map(entry => (
@@ -127,7 +135,10 @@ export default function StatsScreen({ navigation }: Props) {
                   <View style={styles.breakdownInfo}>
                     <Text style={styles.breakdownName}>{entry.workoutName}</Text>
                     <Text style={styles.breakdownMeta}>
-                      {entry.sessions} {entry.sessions === 1 ? 'session' : 'sessions'} · {entry.minutes} min
+                      {t(
+                        entry.sessions === 1 ? 'stats.sessionMinutes_one' : 'stats.sessionMinutes_other',
+                        { count: entry.sessions, minutes: entry.minutes },
+                      )}
                     </Text>
                   </View>
                   <Text style={styles.breakdownCount}>{entry.sessions}</Text>
@@ -141,7 +152,7 @@ export default function StatsScreen({ navigation }: Props) {
         {sessions.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              🥊  PUNCH BREAKDOWN · {activePeriodOption.rangeLabel}
+              🥊  {t('stats.punchBreakdownTitle', { range: activeRangeLabel })}
             </Text>
             {punchBreakdown.map(entry => (
               <View key={entry.code} style={styles.breakdownCard}>
@@ -149,8 +160,11 @@ export default function StatsScreen({ navigation }: Props) {
                   <Text style={styles.breakdownName}>{entry.label}</Text>
                   <Text style={styles.breakdownMeta}>
                     {entry.roundsUsed === 0
-                      ? 'Not trained in this period'
-                      : `Used in ${entry.roundsUsed} ${entry.roundsUsed === 1 ? 'round' : 'rounds'}`}
+                      ? t('stats.notTrainedPeriod')
+                      : t(
+                          entry.roundsUsed === 1 ? 'stats.usedInRounds_one' : 'stats.usedInRounds_other',
+                          { count: entry.roundsUsed },
+                        )}
                   </Text>
                 </View>
                 <Text style={styles.breakdownCount}>{entry.roundsUsed}</Text>
@@ -161,12 +175,10 @@ export default function StatsScreen({ navigation }: Props) {
 
         {/* Recent Sessions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🕒  RECENT SESSIONS</Text>
+          <Text style={styles.sectionTitle}>🕒  {t('stats.recentSessionsTitle')}</Text>
           {recentSessions.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>
-                No sessions logged yet. Finish a workout to see it here.
-              </Text>
+              <Text style={styles.emptyText}>{t('stats.noSessionsYet')}</Text>
             </View>
           ) : (
             recentSessions.map(session => (
@@ -174,8 +186,12 @@ export default function StatsScreen({ navigation }: Props) {
                 <View style={styles.sessionInfo}>
                   <Text style={styles.sessionName}>{session.workoutName}</Text>
                   <Text style={styles.sessionMeta}>
-                    {formatSessionTime(session.timestamp)} · {session.roundsCompleted} rounds
-                    {!session.completed ? ' · exited early' : ''}
+                    {formatSessionTime(session.timestamp, t)} ·{' '}
+                    {t(
+                      session.roundsCompleted === 1 ? 'stats.sessionRounds_one' : 'stats.sessionRounds_other',
+                      { count: session.roundsCompleted },
+                    )}
+                    {!session.completed ? t('stats.exitedEarly') : ''}
                   </Text>
                 </View>
                 <View
@@ -188,7 +204,7 @@ export default function StatsScreen({ navigation }: Props) {
                       styles.completedBadgeText,
                       !session.completed && styles.incompleteBadgeText,
                     ]}>
-                    {session.completed ? 'Done' : 'Partial'}
+                    {session.completed ? t('stats.done') : t('stats.partial')}
                   </Text>
                 </View>
               </View>
@@ -197,27 +213,27 @@ export default function StatsScreen({ navigation }: Props) {
         </View>
         {/* All-Time */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🏆  ALL-TIME</Text>
+          <Text style={styles.sectionTitle}>🏆  {t('stats.allTimeTitle')}</Text>
           <View style={styles.gridRow}>
             <View style={styles.gridCard}>
               <Text style={styles.gridValue}>{allTimeStats.totalSessions}</Text>
-              <Text style={styles.gridLabel}>Total Sessions</Text>
+              <Text style={styles.gridLabel}>{t('stats.totalSessions')}</Text>
             </View>
             <View style={styles.gridCard}>
               <Text style={styles.gridValue}>{allTimeStats.totalMinutes}</Text>
-              <Text style={styles.gridLabel}>Total Minutes</Text>
+              <Text style={styles.gridLabel}>{t('stats.totalMinutes')}</Text>
             </View>
           </View>
           <View style={styles.gridRow}>
             <View style={styles.gridCard}>
               <Text style={styles.gridValue}>{allTimeStats.totalRounds}</Text>
-              <Text style={styles.gridLabel}>Rounds Thrown</Text>
+              <Text style={styles.gridLabel}>{t('stats.roundsThrown')}</Text>
             </View>
             <View style={[styles.gridCard, styles.streakCard]}>
               <Text style={[styles.gridValue, styles.streakValue]}>
                 {allTimeStats.currentStreak}🔥
               </Text>
-              <Text style={styles.gridLabel}>Day Streak</Text>
+              <Text style={styles.gridLabel}>{t('stats.dayStreak')}</Text>
             </View>
           </View>
         </View>

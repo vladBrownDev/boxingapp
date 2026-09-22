@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BottomNav, { NavTab } from '../components/BottomNav';
 import { getWorkoutCombos, getWorkoutDurationMinutes, Workout, WORKOUTS } from '../data/workouts';
+import { useTranslation } from '../i18n/LanguageContext';
+import { TranslationKey } from '../i18n/translations';
 import { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutList'>;
@@ -17,6 +19,7 @@ const LEVEL_COLORS: Record<Workout['level'], string> = {
 export default function WorkoutListScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<NavTab>('browse');
+  const { t } = useTranslation();
 
   const handleTabPress = (tab: NavTab) => {
     if (tab === 'home') {
@@ -25,6 +28,10 @@ export default function WorkoutListScreen({ navigation }: Props) {
     }
     if (tab === 'progress') {
       navigation.navigate('Stats');
+      return;
+    }
+    if (tab === 'menu') {
+      navigation.navigate('Menu');
       return;
     }
     setActiveTab(tab);
@@ -36,7 +43,7 @@ export default function WorkoutListScreen({ navigation }: Props) {
         <TouchableOpacity onPress={navigation.goBack} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Text style={styles.backArrow}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Workouts</Text>
+        <Text style={styles.headerTitle}>{t('workoutList.headerTitle')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -60,12 +67,15 @@ export default function WorkoutListScreen({ navigation }: Props) {
                     { borderColor: LEVEL_COLORS[workout.level] },
                   ]}>
                   <Text style={[styles.levelText, { color: LEVEL_COLORS[workout.level] }]}>
-                    {workout.level}
+                    {t(`level.${workout.level}` as TranslationKey)}
                   </Text>
                 </View>
               </View>
               <Text style={styles.cardMeta}>
-                {workout.rounds} rounds · {getWorkoutDurationMinutes(workout)} min
+                {t('workoutList.meta', {
+                  rounds: workout.rounds,
+                  minutes: getWorkoutDurationMinutes(workout),
+                })}
               </Text>
               <Text style={styles.cardCombos} numberOfLines={1}>
                 {combos.map(c => c.name).join(' · ')}

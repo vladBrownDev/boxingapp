@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from '../i18n/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { loadAuthState } from '../storage/authStorage';
 
@@ -16,6 +17,7 @@ const { width } = Dimensions.get('window');
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
 export default function SplashScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(0.8)).current;
   const taglineOpacity = useRef(new Animated.Value(0)).current;
@@ -66,14 +68,14 @@ export default function SplashScreen({ navigation }: Props) {
             { opacity: logoOpacity, transform: [{ scale: logoScale }] },
           ]}>
           <Image
-            source={require('../media/logo.png')}
+            source={require('../media/logo-no-bg-sm.png')}
             style={styles.logo}
             resizeMode="contain"
           />
         </Animated.View>
 
         <Animated.Text style={[styles.tagline, { opacity: taglineOpacity }]}>
-          Forge Your Boxing Skills
+          {t('splash.tagline')}
         </Animated.Text>
       </View>
 

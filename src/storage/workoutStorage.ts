@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ComboLevel, getComboById } from '../data/combos';
+import { TFunction } from '../i18n/LanguageContext';
+import { Locale, MONTHS } from '../i18n/translations';
 import { PUNCH_BY_CODE, PUNCHES, PunchCode } from '../data/punchNotation';
 
 const SESSIONS_KEY = '@punchfactory/workout_sessions';
@@ -231,11 +233,6 @@ export function getPunchBreakdown(sessions: WorkoutSession[]): PunchBreakdownEnt
     .sort((a, b) => a.roundsUsed - b.roundsUsed);
 }
 
-const MONTH_NAMES = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
-
 /** Formats a timestamp's clock time, e.g. "7:05pm". */
 function formatClockTime(timestamp: number): string {
   const date = new Date(timestamp);
@@ -246,26 +243,26 @@ function formatClockTime(timestamp: number): string {
 }
 
 /** Formats a session timestamp as a calendar date and time, e.g. "Sep 3, 2026 \u00b7 7:05pm". */
-export function formatSessionDate(timestamp: number): string {
+export function formatSessionDate(timestamp: number, locale: Locale): string {
   const date = new Date(timestamp);
-  return `${MONTH_NAMES[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()} \u00b7 ${formatClockTime(timestamp)}`;
+  return `${MONTHS[locale][date.getMonth()]} ${date.getDate()}, ${date.getFullYear()} \u00b7 ${formatClockTime(timestamp)}`;
 }
 
 /** Formats a session timestamp for display, e.g. "Today at 7:05pm", "Yesterday", "3 days ago". */
-export function formatSessionTime(timestamp: number): string {
+export function formatSessionTime(timestamp: number, t: TFunction): string {
   const today = startOfDay();
   const yesterday = today - 24 * 60 * 60 * 1000;
 
   if (timestamp >= today) {
-    return `Today at ${formatClockTime(timestamp)}`;
+    return t('time.todayAt', { time: formatClockTime(timestamp) });
   }
   if (timestamp >= yesterday) {
-    return 'Yesterday';
+    return t('time.yesterday');
   }
   const days = Math.floor((today - timestamp) / (24 * 60 * 60 * 1000));
   if (days < 7) {
-    return `${days} days ago`;
+    return t(days === 1 ? 'time.daysAgo_one' : 'time.daysAgo_other', { count: days });
   }
   const weeks = Math.floor(days / 7);
-  return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
+  return t(weeks === 1 ? 'time.weeksAgo_one' : 'time.weeksAgo_other', { count: weeks });
 }

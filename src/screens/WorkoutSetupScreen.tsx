@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { getWorkoutCombos } from '../data/workouts';
+import { useTranslation } from '../i18n/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 
 export interface WorkoutRunConfig {
@@ -33,6 +34,7 @@ function clamp(value: number, min: number, max: number): number {
 export default function WorkoutSetupScreen({ navigation, route }: Props) {
   const { workout } = route.params;
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [workSeconds, setWorkSeconds] = useState(workout.workSeconds);
   const [restSeconds, setRestSeconds] = useState(workout.restSeconds);
   const combos = getWorkoutCombos(workout);
@@ -56,12 +58,12 @@ export default function WorkoutSetupScreen({ navigation, route }: Props) {
 
         <View style={styles.summaryRow}>
           <Text style={styles.summaryText}>
-            {workout.rounds} rounds · {formatDuration(totalSeconds)} total
+            {t('workoutSetup.summary', { rounds: workout.rounds, duration: formatDuration(totalSeconds) })}
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ROUND DURATION</Text>
+          <Text style={styles.sectionTitle}>{t('workoutSetup.roundDuration')}</Text>
           <View style={styles.stepperRow}>
             <TouchableOpacity
               style={styles.stepperBtn}
@@ -80,7 +82,7 @@ export default function WorkoutSetupScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>REST DURATION</Text>
+          <Text style={styles.sectionTitle}>{t('workoutSetup.restDuration')}</Text>
           <View style={styles.stepperRow}>
             <TouchableOpacity
               style={styles.stepperBtn}
@@ -99,7 +101,7 @@ export default function WorkoutSetupScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>COMBOS IN THIS WORKOUT</Text>
+          <Text style={styles.sectionTitle}>{t('workoutSetup.combosTitle')}</Text>
           {combos.map(combo => (
             <View key={combo.id} style={styles.comboCard}>
               <Text style={styles.comboName}>{combo.name}</Text>
@@ -121,7 +123,7 @@ export default function WorkoutSetupScreen({ navigation, route }: Props) {
               config: { workSeconds, restSeconds },
             })
           }>
-          <Text style={styles.startButtonText}>START WORKOUT</Text>
+          <Text style={styles.startButtonText}>{t('workoutSetup.startWorkout')}</Text>
         </TouchableOpacity>
       </View>
     </View>

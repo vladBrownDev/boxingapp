@@ -5,6 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Combo } from '../data/combos';
 import { describeMove } from '../data/punchNotation';
 import { getWorkoutCombos, Workout } from '../data/workouts';
+import { useTranslation } from '../i18n/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { addSession, WorkoutSession } from '../storage/workoutStorage';
 
@@ -74,6 +75,7 @@ function buildSession(
 export default function WorkoutPlayerScreen({ navigation, route }: Props) {
   const { workout, config } = route.params;
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const combos = useMemo(() => getWorkoutCombos(workout), [workout]);
   const { workSeconds, restSeconds } = config;
 
@@ -134,12 +136,12 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
   if (state.phase === 'done') {
     return (
       <View style={[styles.container, styles.doneContainer]}>
-        <Text style={styles.doneTitle}>Workout Complete!</Text>
+        <Text style={styles.doneTitle}>{t('player.doneTitle')}</Text>
         <Text style={styles.doneSubtitle}>
-          {workout.rounds} rounds · {workout.name}
+          {t('player.doneSubtitle', { rounds: workout.rounds, name: workout.name })}
         </Text>
         <TouchableOpacity style={styles.primaryButton} activeOpacity={0.85} onPress={exitToDashboard}>
-          <Text style={styles.primaryButtonText}>DONE</Text>
+          <Text style={styles.primaryButtonText}>{t('player.doneBtn')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -154,24 +156,24 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={exitToDashboard} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Text style={styles.exitText}>Exit</Text>
+          <Text style={styles.exitText}>{t('player.exit')}</Text>
         </TouchableOpacity>
         <Text style={styles.roundIndicator}>
-          Round {state.roundIndex + 1} / {workout.rounds}
+          {t('player.round', { current: state.roundIndex + 1, total: workout.rounds })}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
 
       <View style={styles.timerSection}>
         <Text style={[styles.phaseLabel, isWork ? styles.phaseLabelWork : styles.phaseLabelRest]}>
-          {isWork ? 'WORK' : 'REST'}
+          {isWork ? t('player.work') : t('player.rest')}
         </Text>
         <Text style={styles.timerText}>{formatTime(state.secondsLeft)}</Text>
       </View>
 
       <View style={styles.comboSection}>
         <Text style={styles.comboSectionLabel}>
-          {isWork ? 'CURRENT COMBO' : 'NEXT UP'}
+          {isWork ? t('player.currentCombo') : t('player.nextUp')}
         </Text>
         <Text style={styles.comboName}>{activeCombo.name}</Text>
         <View style={styles.chipsRow}>
@@ -189,7 +191,7 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
           style={styles.pauseButton}
           activeOpacity={0.85}
           onPress={() => setIsPaused(p => !p)}>
-          <Text style={styles.pauseButtonText}>{isPaused ? 'RESUME' : 'PAUSE'}</Text>
+          <Text style={styles.pauseButtonText}>{isPaused ? t('player.resume') : t('player.pause')}</Text>
         </TouchableOpacity>
       </View>
     </View>

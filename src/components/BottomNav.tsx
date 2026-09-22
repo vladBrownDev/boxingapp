@@ -5,17 +5,19 @@ import HomeIcon from '../media/home.svg';
 import WorkoutsIcon from '../media/workouts.svg';
 import StatsIcon from '../media/stats.svg';
 import MenuIcon from '../media/menu.svg';
+import { TranslationKey } from '../i18n/translations';
+import { useTranslation } from '../i18n/LanguageContext';
 
 export type NavTab = 'home' | 'browse' | 'progress' | 'menu';
 
 const ACTIVE_COLOR = '#FFFFFF';
 const INACTIVE_COLOR = '#D42020';
 
-const TABS: { key: NavTab; label: string; Icon: React.FC<{ width: number; height: number; color: string }> }[] = [
-  { key: 'home',     label: 'Home',     Icon: HomeIcon },
-  { key: 'browse',   label: 'Browse',   Icon: WorkoutsIcon },
-  { key: 'progress', label: 'Progress', Icon: StatsIcon },
-  { key: 'menu',     label: 'Menu',     Icon: MenuIcon },
+const TABS: { key: NavTab; labelKey: TranslationKey; Icon: React.FC<{ width: number; height: number; color: string }> }[] = [
+  { key: 'home',     labelKey: 'nav.home',     Icon: HomeIcon },
+  { key: 'browse',   labelKey: 'nav.browse',   Icon: WorkoutsIcon },
+  { key: 'progress', labelKey: 'nav.progress', Icon: StatsIcon },
+  { key: 'menu',     labelKey: 'nav.menu',     Icon: MenuIcon },
 ];
 
 interface Props {
@@ -25,12 +27,13 @@ interface Props {
 
 export default function BottomNav({ active, onPress }: Props) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom || 12 }]}>
       <View style={styles.border} />
       <View style={styles.row}>
-        {TABS.map(({ key, label, Icon }) => {
+        {TABS.map(({ key, labelKey, Icon }) => {
           const isActive = key === active;
           return (
             <TouchableOpacity
@@ -40,7 +43,7 @@ export default function BottomNav({ active, onPress }: Props) {
               activeOpacity={0.7}>
               <Icon width={22} height={22} color={isActive ? ACTIVE_COLOR : INACTIVE_COLOR} />
               <Text style={[styles.label, isActive && styles.labelActive]}>
-                {label}
+                {t(labelKey)}
               </Text>
             </TouchableOpacity>
           );

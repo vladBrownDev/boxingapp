@@ -6,6 +6,7 @@ export type RootStackParamList = {
   Welcome: undefined;
   Dashboard: undefined;
   Stats: undefined;
+  Menu: undefined;
   WorkoutList: undefined;
   WorkoutSetup: { workout: Workout };
   WorkoutPlayer: { workout: Workout; config: WorkoutRunConfig };
