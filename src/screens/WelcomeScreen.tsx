@@ -12,6 +12,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from '../i18n/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { loginAsGuest } from '../storage/authStorage';
+import { loadTrainingDays } from '../storage/trainingSchedule';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
 
@@ -19,13 +20,14 @@ export default function WelcomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
-  const goToDashboard = () => {
-    navigation.reset({ index: 0, routes: [{ name: 'Dashboard' }] });
+  const continueIntoApp = async () => {
+    const trainingDays = await loadTrainingDays();
+    navigation.reset({ index: 0, routes: [{ name: trainingDays ? 'Dashboard' : 'TrainingSchedule' }] });
   };
 
   const handleStartFree = async () => {
     await loginAsGuest();
-    goToDashboard();
+    continueIntoApp();
   };
   const fadeIn = useRef(new Animated.Value(0)).current;
   const slideUp = useRef(new Animated.Value(40)).current;
@@ -108,7 +110,7 @@ export default function WelcomeScreen({ navigation }: Props) {
 
           <TouchableOpacity
             style={styles.secondaryButton}
-            onPress={goToDashboard}
+            onPress={continueIntoApp}
             activeOpacity={0.7}>
             <Text style={styles.secondaryButtonText}>
               {t('welcome.haveAccount')}

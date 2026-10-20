@@ -9,7 +9,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BottomNav, { NavTab } from '../components/BottomNav';
-import { getSuggestedWorkout, getWorkoutDurationMinutes, WORKOUTS } from '../data/workouts';
+import { getPunchLabel } from '../data/punchNotation';
+import { getSuggestedWorkout, getWorkoutDurationMinutes, getWorkoutName, WORKOUTS } from '../data/workouts';
 import { useFavorites } from '../hooks/useFavorites';
 import { useWorkoutStats } from '../hooks/useWorkoutStats';
 import { useTranslation } from '../i18n/LanguageContext';
@@ -115,7 +116,7 @@ export default function DashboardScreen({ navigation }: Props) {
             <Text style={styles.sectionTitle}>🎯  {t('dashboard.suggestedTitle')}</Text>
             <View style={styles.suggestedCard}>
               <View style={styles.suggestedTop}>
-                <Text style={styles.suggestedName}>{suggested.workout.name}</Text>
+                <Text style={styles.suggestedName}>{getWorkoutName(t, suggested.workout)}</Text>
                 <View style={styles.levelBadge}>
                   <Text style={styles.levelText}>{t(`level.${suggested.workout.level}` as TranslationKey)}</Text>
                 </View>
@@ -126,9 +127,11 @@ export default function DashboardScreen({ navigation }: Props) {
                   rounds: suggested.workout.rounds,
                 })}
               </Text>
-              {suggested.focusPunchLabels.length > 0 && (
+              {suggested.focusPunchCodes.length > 0 && (
                 <Text style={styles.suggestedFocus}>
-                  {t('dashboard.suggestedFocus', { punches: suggested.focusPunchLabels.join(', ') })}
+                  {t('dashboard.suggestedFocus', {
+                    punches: suggested.focusPunchCodes.map(code => getPunchLabel(t, code)).join(', '),
+                  })}
                 </Text>
               )}
               <TouchableOpacity
@@ -156,7 +159,9 @@ export default function DashboardScreen({ navigation }: Props) {
                   activeOpacity={0.7}
                   disabled={!workout}
                   onPress={() => workout && navigation.navigate('WorkoutSetup', { workout })}>
-                  <Text style={styles.workoutName}>{session.workoutName}</Text>
+                  <Text style={styles.workoutName}>
+                    {workout ? getWorkoutName(t, workout) : session.workoutName}
+                  </Text>
                   <Text style={styles.workoutMeta}>
                     {workout
                       ? t('dashboard.workoutMeta', {

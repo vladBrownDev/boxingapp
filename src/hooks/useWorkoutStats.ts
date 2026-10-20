@@ -15,13 +15,16 @@ import {
   getWorkoutBreakdown,
   loadSessions,
 } from '../storage/workoutStorage';
+import { ALL_WEEKDAYS, loadTrainingDays } from '../storage/trainingSchedule';
 
 export function useWorkoutStats() {
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
+  const [trainingDays, setTrainingDays] = useState<number[]>(ALL_WEEKDAYS);
 
   useFocusEffect(
     useCallback(() => {
       loadSessions().then(setSessions);
+      loadTrainingDays().then(days => setTrainingDays(days ?? ALL_WEEKDAYS));
     }, []),
   );
 
@@ -32,7 +35,7 @@ export function useWorkoutStats() {
 
   const todayStats: TodayStats = getTodayStats(sessions);
   const weekStats: WeekStats = getWeekStats(sessions);
-  const allTimeStats: AllTimeStats = getAllTimeStats(sessions);
+  const allTimeStats: AllTimeStats = getAllTimeStats(sessions, trainingDays);
   const workoutBreakdown: WorkoutBreakdownEntry[] = getWorkoutBreakdown(sessions);
   const punchBreakdown: PunchBreakdownEntry[] = getPunchBreakdown(sessions);
 

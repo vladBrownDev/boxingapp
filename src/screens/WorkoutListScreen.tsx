@@ -3,7 +3,8 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BottomNav, { NavTab } from '../components/BottomNav';
-import { getWorkoutCombos, getWorkoutDurationMinutes, Workout, WORKOUTS } from '../data/workouts';
+import { getComboName } from '../data/combos';
+import { getWorkoutCombos, getWorkoutDurationMinutes, getWorkoutName, Workout, WORKOUTS } from '../data/workouts';
 import { useTranslation } from '../i18n/LanguageContext';
 import { TranslationKey } from '../i18n/translations';
 import { RootStackParamList } from '../navigation/types';
@@ -60,7 +61,7 @@ export default function WorkoutListScreen({ navigation }: Props) {
               activeOpacity={0.8}
               onPress={() => navigation.navigate('WorkoutSetup', { workout })}>
               <View style={styles.cardTop}>
-                <Text style={styles.cardName}>{workout.name}</Text>
+                <Text style={styles.cardName}>{getWorkoutName(t, workout)}</Text>
                 <View
                   style={[
                     styles.levelBadge,
@@ -78,7 +79,7 @@ export default function WorkoutListScreen({ navigation }: Props) {
                 })}
               </Text>
               <Text style={styles.cardCombos} numberOfLines={1}>
-                {combos.map(c => c.name).join(' · ')}
+                {combos.map(c => getComboName(t, c)).join(' · ')}
               </Text>
             </TouchableOpacity>
           );

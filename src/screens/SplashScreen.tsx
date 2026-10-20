@@ -11,6 +11,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from '../i18n/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { loadAuthState } from '../storage/authStorage';
+import { loadTrainingDays } from '../storage/trainingSchedule';
 
 const { width } = Dimensions.get('window');
 
@@ -50,11 +51,11 @@ export default function SplashScreen({ navigation }: Props) {
       }),
     ]).start(() => {
       setTimeout(async () => {
-        const authState = await loadAuthState();
-        navigation.reset({
-          index: 0,
-          routes: [{ name: authState.isLoggedIn ? 'Dashboard' : 'Welcome' }],
-        });
+        const [authState, trainingDays] = await Promise.all([loadAuthState(), loadTrainingDays()]);
+        // Logged-in users who never picked training days (e.g. installs from before the
+        // schedule existed) get the onboarding step once.
+        const next = !authState.isLoggedIn ? 'Welcome' : trainingDays ? 'Dashboard' : 'TrainingSchedule';
+        navigation.reset({ index: 0, routes: [{ name: next }] });
       }, 200);
     });
   }, [navigation]);

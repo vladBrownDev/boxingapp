@@ -1,9 +1,10 @@
+import { TFunction } from '../i18n/LanguageContext';
+import { TranslationKey } from '../i18n/translations';
 import { Combo, ComboLevel, getComboById } from './combos';
 import { PUNCH_BY_CODE, PunchCode } from './punchNotation';
 
 export interface Workout {
   id: string;
-  name: string;
   level: ComboLevel;
   rounds: number;
   workSeconds: number;
@@ -15,7 +16,6 @@ export interface Workout {
 export const WORKOUTS: Workout[] = [
   {
     id: 'workout-beginner-basics',
-    name: 'Beginner Basics',
     level: 'Beginner',
     rounds: 6,
     workSeconds: 120,
@@ -24,7 +24,6 @@ export const WORKOUTS: Workout[] = [
   },
   {
     id: 'workout-body-shot-focus',
-    name: 'Body Shot Focus',
     level: 'Intermediate',
     rounds: 8,
     workSeconds: 150,
@@ -33,7 +32,6 @@ export const WORKOUTS: Workout[] = [
   },
   {
     id: 'workout-defense-and-counter',
-    name: 'Defense & Counter',
     level: 'Advanced',
     rounds: 10,
     workSeconds: 180,
@@ -42,7 +40,6 @@ export const WORKOUTS: Workout[] = [
   },
   {
     id: 'workout-full-combo-grind',
-    name: 'Full Combo Grind',
     level: 'Advanced',
     rounds: 12,
     workSeconds: 180,
@@ -50,6 +47,14 @@ export const WORKOUTS: Workout[] = [
     comboIds: ['combo-five-punch', 'combo-pivot-escape', 'combo-weave-counter', 'combo-duck-uppercut'],
   },
 ];
+
+export function getWorkoutById(id: string): Workout | undefined {
+  return WORKOUTS.find(workout => workout.id === id);
+}
+
+export function getWorkoutName(t: TFunction, workout: Workout): string {
+  return t(`${workout.id}.name` as TranslationKey);
+}
 
 /** Resolves a workout's combo ids to their full Combo objects, in order. */
 export function getWorkoutCombos(workout: Workout): Combo[] {
@@ -83,16 +88,15 @@ function getWorkoutPunchCodes(workout: Workout): PunchCode[] {
 export interface SuggestedWorkout {
   workout: Workout;
   /** The least-trained punches (globally) that this workout would exercise. */
-  focusPunchLabels: string[];
+  focusPunchCodes: PunchCode[];
 }
 
 /** Picks the workout whose combos best cover the punches the user has thrown in the
  * fewest rounds, so training stays balanced instead of favoring the same few punches. */
 export function getSuggestedWorkout(
-  punchBreakdown: { code: PunchCode; label: string; roundsUsed: number }[],
+  punchBreakdown: { code: PunchCode; roundsUsed: number }[],
 ): SuggestedWorkout | undefined {
   const roundsByCode = new Map(punchBreakdown.map(p => [p.code, p.roundsUsed]));
-  const labelByCode = new Map(punchBreakdown.map(p => [p.code, p.label]));
 
   let best: { workout: Workout; score: number; codes: PunchCode[] } | undefined;
   for (const workout of WORKOUTS) {
@@ -110,11 +114,10 @@ export function getSuggestedWorkout(
     return undefined;
   }
 
-  const focusPunchLabels = best.codes
+  const focusPunchCodes = best.codes
     .slice()
     .sort((a, b) => (roundsByCode.get(a) ?? 0) - (roundsByCode.get(b) ?? 0))
-    .slice(0, 2)
-    .map(code => labelByCode.get(code) ?? code);
+    .slice(0, 2);
 
-  return { workout: best.workout, focusPunchLabels };
+  return { workout: best.workout, focusPunchCodes };
 }

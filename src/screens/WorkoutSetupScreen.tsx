@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { getWorkoutCombos } from '../data/workouts';
+import { getComboName } from '../data/combos';
+import { describeMove } from '../data/punchNotation';
+import { getWorkoutCombos, getWorkoutName } from '../data/workouts';
 import { useTranslation } from '../i18n/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 
@@ -47,7 +49,7 @@ export default function WorkoutSetupScreen({ navigation, route }: Props) {
         <TouchableOpacity onPress={navigation.goBack} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Text style={styles.backArrow}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{workout.name}</Text>
+        <Text style={styles.headerTitle}>{getWorkoutName(t, workout)}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -104,8 +106,10 @@ export default function WorkoutSetupScreen({ navigation, route }: Props) {
           <Text style={styles.sectionTitle}>{t('workoutSetup.combosTitle')}</Text>
           {combos.map(combo => (
             <View key={combo.id} style={styles.comboCard}>
-              <Text style={styles.comboName}>{combo.name}</Text>
-              <Text style={styles.comboSequence}>{combo.sequence.join('  ')}</Text>
+              <Text style={styles.comboName}>{getComboName(t, combo)}</Text>
+              <Text style={styles.comboSequence}>
+                {combo.sequence.map(step => describeMove(t, step)).join('  •  ')}
+              </Text>
             </View>
           ))}
         </View>

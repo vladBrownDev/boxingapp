@@ -3,6 +3,7 @@ import { ComboLevel, getComboById } from '../data/combos';
 import { TFunction } from '../i18n/LanguageContext';
 import { Locale, MONTHS } from '../i18n/translations';
 import { PUNCH_BY_CODE, PUNCHES, PunchCode } from '../data/punchNotation';
+import { ALL_WEEKDAYS } from './trainingSchedule';
 
 const SESSIONS_KEY = '@punchfactory/workout_sessions';
 
@@ -140,33 +141,43 @@ export interface WorkoutBreakdownEntry {
   minutes: number;
 }
 
-/** Counts consecutive days (ending today or yesterday) with at least one session. */
-function getCurrentStreak(sessions: WorkoutSession[]): number {
+/**
+ * Counts days trained in a row, measured against the user's training schedule: a missed
+ * training day breaks the streak, an untrained rest day doesn't, and a workout on a rest
+ * day still counts. Today never breaks it, since there's still time to train.
+ */
+export function getCurrentStreak(
+  sessions: WorkoutSession[],
+  trainingDays: number[] = ALL_WEEKDAYS,
+): number {
   if (sessions.length === 0) {
     return 0;
   }
-  const dayMs = 24 * 60 * 60 * 1000;
-  const trainedDays = new Set(
-    sessions.map(s => Math.floor(s.timestamp / dayMs)),
-  );
-  const today = Math.floor(startOfDay() / dayMs);
+  // Key days by local calendar date, so sessions bucket by the user's midnight, not UTC's.
+  const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  const trainedDays = new Set(sessions.map(s => dayKey(new Date(s.timestamp))));
+  const firstSession = Math.min(...sessions.map(s => s.timestamp));
 
   let streak = 0;
-  let day = today;
-  if (!trainedDays.has(day)) {
-    day -= 1;
-    if (!trainedDays.has(day)) {
-      return 0;
-    }
+  const day = new Date(startOfDay());
+  if (!trainedDays.has(dayKey(day))) {
+    day.setDate(day.getDate() - 1);
   }
-  while (trainedDays.has(day)) {
-    streak += 1;
-    day -= 1;
+  while (day.getTime() + 24 * 60 * 60 * 1000 > firstSession) {
+    if (trainedDays.has(dayKey(day))) {
+      streak += 1;
+    } else if (trainingDays.includes(day.getDay())) {
+      break;
+    }
+    day.setDate(day.getDate() - 1);
   }
   return streak;
 }
 
-export function getAllTimeStats(sessions: WorkoutSession[]): AllTimeStats {
+export function getAllTimeStats(
+  sessions: WorkoutSession[],
+  trainingDays: number[] = ALL_WEEKDAYS,
+): AllTimeStats {
   return {
     totalSessions: sessions.length,
     totalMinutes: Math.round(
@@ -174,7 +185,7 @@ export function getAllTimeStats(sessions: WorkoutSession[]): AllTimeStats {
     ),
     totalRounds: sessions.reduce((sum, s) => sum + s.roundsCompleted, 0),
     completedSessions: sessions.filter(s => s.completed).length,
-    currentStreak: getCurrentStreak(sessions),
+    currentStreak: getCurrentStreak(sessions, trainingDays),
   };
 }
 
@@ -197,7 +208,6 @@ export function getWorkoutBreakdown(sessions: WorkoutSession[]): WorkoutBreakdow
 
 export interface PunchBreakdownEntry {
   code: PunchCode;
-  label: string;
   roundsUsed: number;
 }
 
@@ -229,12 +239,12 @@ export function getPunchBreakdown(sessions: WorkoutSession[]): PunchBreakdownEnt
     }
   }
 
-  return PUNCHES.map(p => ({ code: p.code, label: p.label, roundsUsed: roundCounts.get(p.code) ?? 0 }))
+  return PUNCHES.map(p => ({ code: p.code, roundsUsed: roundCounts.get(p.code) ?? 0 }))
     .sort((a, b) => a.roundsUsed - b.roundsUsed);
 }
 
 /** Formats a timestamp's clock time, e.g. "7:05pm". */
-function formatClockTime(timestamp: number): string {
+export function formatClockTime(timestamp: number): string {
   const date = new Date(timestamp);
   const hours24 = date.getHours();
   const hours = hours24 % 12 === 0 ? 12 : hours24 % 12;

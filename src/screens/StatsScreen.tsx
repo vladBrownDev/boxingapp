@@ -3,6 +3,8 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BottomNav, { NavTab } from '../components/BottomNav';
+import { getPunchLabel } from '../data/punchNotation';
+import { getWorkoutById, getWorkoutName } from '../data/workouts';
 import { useWorkoutStats } from '../hooks/useWorkoutStats';
 import { useTranslation } from '../i18n/LanguageContext';
 import { TranslationKey } from '../i18n/translations';
@@ -130,10 +132,14 @@ export default function StatsScreen({ navigation }: Props) {
                 <Text style={styles.emptyText}>{t('stats.noWorkoutsPeriod')}</Text>
               </View>
             ) : (
-              workoutBreakdown.map(entry => (
+              workoutBreakdown.map(entry => {
+                const workout = getWorkoutById(entry.workoutId);
+                return (
                 <View key={entry.workoutId} style={styles.breakdownCard}>
                   <View style={styles.breakdownInfo}>
-                    <Text style={styles.breakdownName}>{entry.workoutName}</Text>
+                    <Text style={styles.breakdownName}>
+                      {workout ? getWorkoutName(t, workout) : entry.workoutName}
+                    </Text>
                     <Text style={styles.breakdownMeta}>
                       {t(
                         entry.sessions === 1 ? 'stats.sessionMinutes_one' : 'stats.sessionMinutes_other',
@@ -143,7 +149,8 @@ export default function StatsScreen({ navigation }: Props) {
                   </View>
                   <Text style={styles.breakdownCount}>{entry.sessions}</Text>
                 </View>
-              ))
+                );
+              })
             )}
           </View>
         )}
@@ -157,7 +164,7 @@ export default function StatsScreen({ navigation }: Props) {
             {punchBreakdown.map(entry => (
               <View key={entry.code} style={styles.breakdownCard}>
                 <View style={styles.breakdownInfo}>
-                  <Text style={styles.breakdownName}>{entry.label}</Text>
+                  <Text style={styles.breakdownName}>{getPunchLabel(t, entry.code)}</Text>
                   <Text style={styles.breakdownMeta}>
                     {entry.roundsUsed === 0
                       ? t('stats.notTrainedPeriod')
@@ -181,10 +188,14 @@ export default function StatsScreen({ navigation }: Props) {
               <Text style={styles.emptyText}>{t('stats.noSessionsYet')}</Text>
             </View>
           ) : (
-            recentSessions.map(session => (
+            recentSessions.map(session => {
+              const workout = getWorkoutById(session.workoutId);
+              return (
               <View key={session.id} style={styles.sessionCard}>
                 <View style={styles.sessionInfo}>
-                  <Text style={styles.sessionName}>{session.workoutName}</Text>
+                  <Text style={styles.sessionName}>
+                    {workout ? getWorkoutName(t, workout) : session.workoutName}
+                  </Text>
                   <Text style={styles.sessionMeta}>
                     {formatSessionTime(session.timestamp, t)} ·{' '}
                     {t(
@@ -208,7 +219,8 @@ export default function StatsScreen({ navigation }: Props) {
                   </Text>
                 </View>
               </View>
-            ))
+              );
+            })
           )}
         </View>
         {/* All-Time */}

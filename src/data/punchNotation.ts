@@ -12,7 +12,8 @@
  *
  * Every punch (side + type) exists as two explicit variants — a head version
  * and a body version — defined below via PunchDefinition, so each one carries
- * its own code, label, and (later) its own reference image.
+ * its own code and (later) its own reference image. Labels are localized on
+ * demand via getPunchLabel/getDefenseLabel, keyed by code.
  *
  * Defense/movement codes are plain 2-3 letter codes that always start with a
  * letter other than L/R, so they can't collide with punch codes.
@@ -20,6 +21,9 @@
  * Simultaneous actions (e.g. throwing a punch while slipping) are written as
  * two codes joined by "+": "SL+LHJ" = slip left while throwing a left head jab.
  */
+
+import { TFunction } from '../i18n/LanguageContext';
+import { TranslationKey } from '../i18n/translations';
 
 export type PunchCode =
   | 'LHJ' | 'LBJ' | 'LHC' | 'LBC' | 'LHH' | 'LBH' | 'LHU' | 'LBU'
@@ -35,23 +39,13 @@ export interface PunchDefinition {
   side: PunchSide;
   type: PunchType;
   target: PunchTarget;
-  label: string;
 }
 
-const SIDE_NAMES: Record<PunchSide, string> = { L: 'Left', R: 'Right' };
-const PUNCH_TYPE_NAMES: Record<PunchType, string> = {
-  J: 'Jab',
-  C: 'Cross',
-  H: 'Hook',
-  U: 'Uppercut',
-};
 const TARGET_LEVEL_LETTER: Record<PunchTarget, string> = { head: 'H', body: 'B' };
-const TARGET_NAMES: Record<PunchTarget, string> = { head: 'Head', body: 'Body' };
 
 function definePunch(side: PunchSide, type: PunchType, target: PunchTarget): PunchDefinition {
   const code = `${side}${TARGET_LEVEL_LETTER[target]}${type}` as PunchCode;
-  const label = `${SIDE_NAMES[side]} ${TARGET_NAMES[target]} ${PUNCH_TYPE_NAMES[type]}`;
-  return { code, side, type, target, label };
+  return { code, side, type, target };
 }
 
 const SIDES: PunchSide[] = ['L', 'R'];
@@ -67,9 +61,9 @@ export const PUNCH_BY_CODE: Record<PunchCode, PunchDefinition> = Object.fromEntr
   PUNCHES.map(punch => [punch.code, punch]),
 ) as Record<PunchCode, PunchDefinition>;
 
-export const PUNCH_LABELS: Record<PunchCode, string> = Object.fromEntries(
-  PUNCHES.map(punch => [punch.code, punch.label]),
-) as Record<PunchCode, string>;
+export function getPunchLabel(t: TFunction, code: PunchCode): string {
+  return t(`punch.${code}` as TranslationKey);
+}
 
 /** Returns the head and body variant of the same punch (same side + type). */
 export function getPunchVariants(
@@ -95,33 +89,41 @@ export type DefenseCode =
 
 export type MoveCode = PunchCode | DefenseCode;
 
-export const DEFENSE_LABELS: Record<DefenseCode, string> = {
-  SL: 'Slip Left',
-  SR: 'Slip Right',
-  DK: 'Duck',
-  WL: 'Weave Left',
-  WR: 'Weave Right',
-  PL: 'Parry Left',
-  PR: 'Parry Right',
-  BL: 'Block',
-  CU: 'Cover Up',
-  PVL: 'Pivot Left',
-  PVR: 'Pivot Right',
-  SB: 'Step Back',
-  SI: 'Step In',
-  STL: 'Step Left',
-  STR: 'Step Right',
-};
+const DEFENSE_CODES: DefenseCode[] = [
+  'SL', 'SR', 'DK', 'WL', 'WR', 'PL', 'PR', 'BL', 'CU', 'PVL', 'PVR', 'SB', 'SI', 'STL', 'STR',
+];
 
-export const MOVE_LABELS: Record<MoveCode, string> = {
-  ...PUNCH_LABELS,
-  ...DEFENSE_LABELS,
-};
+function isDefenseCode(code: string): code is DefenseCode {
+  return (DEFENSE_CODES as string[]).includes(code);
+}
+
+export function getDefenseLabel(t: TFunction, code: DefenseCode): string {
+  return t(`defense.${code}` as TranslationKey);
+}
+
+export function getMoveLabel(t: TFunction, code: MoveCode): string {
+  return isDefenseCode(code) ? getDefenseLabel(t, code) : getPunchLabel(t, code);
+}
+
+function isMoveCode(code: string): code is MoveCode {
+  return code in PUNCH_BY_CODE || isDefenseCode(code);
+}
 
 /** Resolves a single step, including "+"-joined simultaneous moves, to a readable label. */
-export function describeMove(step: string): string {
+export function describeMove(t: TFunction, step: string): string {
   return step
     .split('+')
-    .map(code => MOVE_LABELS[code as MoveCode] ?? code)
+    .map(code => (isMoveCode(code) ? getMoveLabel(t, code) : code))
     .join(' + ');
+}
+
+/** Finds the punch (ignoring any defense moves) within a single, possibly "+"-joined, step. */
+export function getStepPunch(step: string): PunchDefinition | undefined {
+  for (const code of step.split('+')) {
+    const punch = PUNCH_BY_CODE[code as PunchCode];
+    if (punch) {
+      return punch;
+    }
+  }
+  return undefined;
 }
