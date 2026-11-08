@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from '../i18n/LanguageContext';
 import { FIRST_WEEKDAY, WEEKDAYS_SHORT } from '../i18n/translations';
+import { colors } from '../theme';
 
 interface Props {
   selected: number[]; // Date.getDay() values (0 = Sunday)
@@ -39,6 +40,8 @@ export default function WeekdayPicker({ selected, onChange, minSelected = 1, siz
               isSelected && styles.chipActive,
             ]}
             activeOpacity={0.7}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: isSelected }}
             onPress={() => toggle(day)}>
             <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
               {WEEKDAYS_SHORT[locale][day]}
@@ -56,19 +59,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   chip: {
-    backgroundColor: '#2A2A32',
+    backgroundColor: colors.raised,
     alignItems: 'center',
     justifyContent: 'center',
   },
   chipActive: {
-    backgroundColor: '#D42020',
+    backgroundColor: colors.inverse,
   },
   chipText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#8B8B9E',
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.muted,
   },
   chipTextActive: {
-    color: '#FFFFFF',
+    color: colors.inverseText,
+    fontWeight: '600',
   },
 });

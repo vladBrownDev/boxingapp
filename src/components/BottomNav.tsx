@@ -7,11 +7,13 @@ import StatsIcon from '../media/stats.svg';
 import MenuIcon from '../media/menu.svg';
 import { TranslationKey } from '../i18n/translations';
 import { useTranslation } from '../i18n/LanguageContext';
+import { colors } from '../theme';
 
 export type NavTab = 'home' | 'browse' | 'progress' | 'menu';
 
-const ACTIVE_COLOR = '#FFFFFF';
-const INACTIVE_COLOR = '#D42020';
+// The active tab is marked by brightness alone; red stays on training data.
+const ACTIVE_COLOR = colors.text;
+const INACTIVE_COLOR = colors.faint;
 
 const TABS: { key: NavTab; labelKey: TranslationKey; Icon: React.FC<{ width: number; height: number; color: string }> }[] = [
   { key: 'home',     labelKey: 'nav.home',     Icon: HomeIcon },
@@ -40,6 +42,8 @@ export default function BottomNav({ active, onPress }: Props) {
               key={key}
               style={styles.tab}
               onPress={() => onPress(key)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
               activeOpacity={0.7}>
               <Icon width={22} height={22} color={isActive ? ACTIVE_COLOR : INACTIVE_COLOR} />
               <Text style={[styles.label, isActive && styles.labelActive]}>
@@ -55,12 +59,12 @@ export default function BottomNav({ active, onPress }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#0E0E10',
+    backgroundColor: colors.sunken,
     paddingTop: 8,
   },
   border: {
     height: 1,
-    backgroundColor: '#1C1C24',
+    backgroundColor: colors.rule,
   },
   row: {
     flexDirection: 'row',
@@ -73,12 +77,11 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   label: {
-    fontSize: 11,
+    fontSize: 12,
     color: INACTIVE_COLOR,
     fontWeight: '500',
   },
   labelActive: {
     color: ACTIVE_COLOR,
-    fontWeight: '700',
   },
 });

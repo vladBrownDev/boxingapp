@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   },
   headline: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#FFFFFF',
     textAlign: 'center',
   },
@@ -75,16 +75,16 @@ const styles = StyleSheet.create({
   },
   allowButton: {
     alignSelf: 'stretch',
-    backgroundColor: '#D42020',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
-    paddingVertical: 16,
+    height: 52,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   allowText: {
-    color: '#FFFFFF',
+    color: '#141416',
     fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontWeight: '700',
   },
   skipButton: {
     alignSelf: 'stretch',
@@ -93,8 +93,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   skipText: {
-    color: '#8B8B9E',
+    color: '#A3A3B2',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '500',
   },
 });

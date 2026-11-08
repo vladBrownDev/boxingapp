@@ -25,7 +25,7 @@ export default function TrainingScheduleScreen({ navigation }: Props) {
   return (
     <View style={[styles.container, { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 }]}>
       <View style={styles.content}>
-        <Text style={styles.headline}>{t('schedule.headline')}</Text>
+        <Text style={styles.headline} accessibilityRole="header">{t('schedule.headline')}</Text>
         <Text style={styles.description}>{t('schedule.description')}</Text>
 
         <View style={styles.card}>
@@ -58,7 +58,8 @@ const styles = StyleSheet.create({
   },
   headline: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: '700',
+    letterSpacing: -0.3,
     color: '#FFFFFF',
     lineHeight: 36,
   },
@@ -71,13 +72,13 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#1C1C24',
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 16,
     gap: 16,
   },
   count: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '500',
     color: '#FFFFFF',
     textAlign: 'center',
   },
@@ -89,15 +90,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   primaryButton: {
-    backgroundColor: '#D42020',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
-    paddingVertical: 18,
+    height: 56,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 1,
+    color: '#141416',
+    fontSize: 17,
+    fontWeight: '700',
   },
 });
