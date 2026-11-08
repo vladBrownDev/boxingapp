@@ -77,3 +77,6 @@ yarn-error.log
 # build
 android/*
 ios/*
+
+# Raw punch photos and generated art (app copies live in src/media/punches)
+/photos/
