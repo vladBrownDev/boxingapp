@@ -17,6 +17,7 @@ import {
   getWorkoutBreakdown,
   StatsPeriod,
 } from '../storage/workoutStorage';
+import { colors, radius, type } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Stats'>;
 
@@ -40,6 +41,7 @@ export default function StatsScreen({ navigation }: Props) {
   const periodStats = useMemo(() => getPeriodStats(sessions, period), [sessions, period]);
   const workoutBreakdown = useMemo(() => getWorkoutBreakdown(periodSessions), [periodSessions]);
   const punchBreakdown = useMemo(() => getPunchBreakdown(periodSessions), [periodSessions]);
+  const maxPunchRounds = Math.max(1, ...punchBreakdown.map(entry => entry.roundsUsed));
   const activePeriodOption = PERIOD_OPTIONS.find(option => option.key === period)!;
   const activeRangeLabel = t(activePeriodOption.rangeKey);
 
@@ -76,7 +78,7 @@ export default function StatsScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}>
 
         <View style={styles.heroSection}>
-          <Text style={styles.pageTitle}>{t('stats.pageTitle')}</Text>
+          <Text style={styles.pageTitle} accessibilityRole="header">{t('stats.pageTitle')}</Text>
           <Text style={styles.pageSubtitle}>{t('stats.pageSubtitle')}</Text>
         </View>
 
@@ -91,6 +93,8 @@ export default function StatsScreen({ navigation }: Props) {
                   period === option.key && styles.periodOptionActive,
                 ]}
                 activeOpacity={0.8}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: period === option.key }}
                 onPress={() => setPeriod(option.key)}>
                 <Text
                   style={[
@@ -102,22 +106,17 @@ export default function StatsScreen({ navigation }: Props) {
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.sectionTitle}>🗓️  {activeRangeLabel}</Text>
           <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{periodStats.sessions}</Text>
-              <Text style={styles.statLabel}>{t('stats.sessions')}</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{periodStats.minutes}</Text>
-              <Text style={styles.statLabel}>{t('stats.minutes')}</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{periodStats.rounds}</Text>
-              <Text style={styles.statLabel}>{t('stats.rounds')}</Text>
-            </View>
+            {[
+              { label: t('stats.sessions'), value: periodStats.sessions },
+              { label: t('stats.minutes'), value: periodStats.minutes },
+              { label: t('stats.rounds'), value: periodStats.rounds },
+            ].map((stat, index) => (
+              <View key={stat.label} style={[styles.statCell, index > 0 && styles.statCellRule]}>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+                <Text style={styles.statValue}>{stat.value}</Text>
+              </View>
+            ))}
           </View>
         </View>
 
@@ -125,128 +124,126 @@ export default function StatsScreen({ navigation }: Props) {
         {sessions.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              📋  {t('stats.workoutBreakdownTitle', { range: activeRangeLabel })}
+              {t('stats.workoutBreakdownTitle', { range: activeRangeLabel })}
             </Text>
             {workoutBreakdown.length === 0 ? (
               <View style={styles.emptyCard}>
                 <Text style={styles.emptyText}>{t('stats.noWorkoutsPeriod')}</Text>
               </View>
             ) : (
-              workoutBreakdown.map(entry => {
-                const workout = getWorkoutById(entry.workoutId);
-                return (
-                <View key={entry.workoutId} style={styles.breakdownCard}>
-                  <View style={styles.breakdownInfo}>
-                    <Text style={styles.breakdownName}>
-                      {workout ? getWorkoutName(t, workout) : entry.workoutName}
-                    </Text>
-                    <Text style={styles.breakdownMeta}>
-                      {t(
-                        entry.sessions === 1 ? 'stats.sessionMinutes_one' : 'stats.sessionMinutes_other',
-                        { count: entry.sessions, minutes: entry.minutes },
-                      )}
-                    </Text>
-                  </View>
-                  <Text style={styles.breakdownCount}>{entry.sessions}</Text>
-                </View>
-                );
-              })
+              <View style={styles.listCard}>
+                {workoutBreakdown.map((entry, index) => {
+                  const workout = getWorkoutById(entry.workoutId);
+                  return (
+                    <View key={entry.workoutId} style={[styles.listRow, index > 0 && styles.listRowRule]}>
+                      <View style={styles.rowInfo}>
+                        <Text style={styles.rowName}>
+                          {workout ? getWorkoutName(t, workout) : entry.workoutName}
+                        </Text>
+                        <Text style={styles.rowMeta}>
+                          {t(
+                            entry.sessions === 1 ? 'stats.sessionMinutes_one' : 'stats.sessionMinutes_other',
+                            { count: entry.sessions, minutes: entry.minutes },
+                          )}
+                        </Text>
+                      </View>
+                      <Text style={styles.rowFigure}>{entry.sessions}</Text>
+                    </View>
+                  );
+                })}
+              </View>
             )}
           </View>
         )}
 
-        {/* Punch Breakdown */}
+        {/* Punch Breakdown: least-trained first, the bar is rounds used against the most-used punch */}
         {sessions.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              🥊  {t('stats.punchBreakdownTitle', { range: activeRangeLabel })}
+              {t('stats.punchBreakdownTitle', { range: activeRangeLabel })}
             </Text>
-            {punchBreakdown.map(entry => (
-              <View key={entry.code} style={styles.breakdownCard}>
-                <View style={styles.breakdownInfo}>
-                  <Text style={styles.breakdownName}>{getPunchLabel(t, entry.code)}</Text>
-                  <Text style={styles.breakdownMeta}>
-                    {entry.roundsUsed === 0
-                      ? t('stats.notTrainedPeriod')
-                      : t(
-                          entry.roundsUsed === 1 ? 'stats.usedInRounds_one' : 'stats.usedInRounds_other',
-                          { count: entry.roundsUsed },
-                        )}
-                  </Text>
+            <View style={styles.listCard}>
+              {punchBreakdown.map((entry, index) => (
+                <View key={entry.code} style={[styles.punchRow, index > 0 && styles.listRowRule]}>
+                  <View style={styles.punchLine}>
+                    <Text style={styles.punchName}>{getPunchLabel(t, entry.code)}</Text>
+                    <Text style={entry.roundsUsed === 0 ? styles.punchZero : styles.rowFigure}>
+                      {entry.roundsUsed}
+                    </Text>
+                  </View>
+                  <View style={styles.punchTrack}>
+                    {entry.roundsUsed > 0 && (
+                      <View
+                        style={[styles.punchBar, { width: `${(entry.roundsUsed / maxPunchRounds) * 100}%` }]}
+                      />
+                    )}
+                  </View>
                 </View>
-                <Text style={styles.breakdownCount}>{entry.roundsUsed}</Text>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
         )}
 
         {/* Recent Sessions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🕒  {t('stats.recentSessionsTitle')}</Text>
+          <Text style={styles.sectionTitle}>{t('stats.recentSessionsTitle')}</Text>
           {recentSessions.length === 0 ? (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyText}>{t('stats.noSessionsYet')}</Text>
             </View>
           ) : (
-            recentSessions.map(session => {
-              const workout = getWorkoutById(session.workoutId);
-              return (
-              <View key={session.id} style={styles.sessionCard}>
-                <View style={styles.sessionInfo}>
-                  <Text style={styles.sessionName}>
-                    {workout ? getWorkoutName(t, workout) : session.workoutName}
-                  </Text>
-                  <Text style={styles.sessionMeta}>
-                    {formatSessionTime(session.timestamp, t)} ·{' '}
-                    {t(
-                      session.roundsCompleted === 1 ? 'stats.sessionRounds_one' : 'stats.sessionRounds_other',
-                      { count: session.roundsCompleted },
+            <View style={styles.listCard}>
+              {recentSessions.map((session, index) => {
+                const workout = getWorkoutById(session.workoutId);
+                return (
+                  <View key={session.id} style={[styles.listRow, index > 0 && styles.listRowRule]}>
+                    <View style={styles.rowInfo}>
+                      <Text style={styles.rowName}>
+                        {workout ? getWorkoutName(t, workout) : session.workoutName}
+                      </Text>
+                      <Text style={styles.rowMeta}>
+                        {formatSessionTime(session.timestamp, t)} ·{' '}
+                        {t(
+                          session.roundsCompleted === 1 ? 'stats.sessionRounds_one' : 'stats.sessionRounds_other',
+                          { count: session.roundsCompleted },
+                        )}
+                      </Text>
+                    </View>
+                    {!session.completed && (
+                      <View style={styles.partialBadge}>
+                        <Text style={styles.partialBadgeText}>{t('stats.partial')}</Text>
+                      </View>
                     )}
-                    {!session.completed ? t('stats.exitedEarly') : ''}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.completedBadge,
-                    !session.completed && styles.incompleteBadge,
-                  ]}>
-                  <Text
-                    style={[
-                      styles.completedBadgeText,
-                      !session.completed && styles.incompleteBadgeText,
-                    ]}>
-                    {session.completed ? t('stats.done') : t('stats.partial')}
-                  </Text>
-                </View>
-              </View>
-              );
-            })
+                  </View>
+                );
+              })}
+            </View>
           )}
         </View>
+
         {/* All-Time */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🏆  {t('stats.allTimeTitle')}</Text>
-          <View style={styles.gridRow}>
-            <View style={styles.gridCard}>
-              <Text style={styles.gridValue}>{allTimeStats.totalSessions}</Text>
-              <Text style={styles.gridLabel}>{t('stats.totalSessions')}</Text>
-            </View>
-            <View style={styles.gridCard}>
-              <Text style={styles.gridValue}>{allTimeStats.totalMinutes}</Text>
-              <Text style={styles.gridLabel}>{t('stats.totalMinutes')}</Text>
-            </View>
-          </View>
-          <View style={styles.gridRow}>
-            <View style={styles.gridCard}>
-              <Text style={styles.gridValue}>{allTimeStats.totalRounds}</Text>
-              <Text style={styles.gridLabel}>{t('stats.roundsThrown')}</Text>
-            </View>
-            <View style={[styles.gridCard, styles.streakCard]}>
-              <Text style={[styles.gridValue, styles.streakValue]}>
-                {allTimeStats.currentStreak}🔥
-              </Text>
-              <Text style={styles.gridLabel}>{t('stats.dayStreak')}</Text>
-            </View>
+          <Text style={styles.sectionTitle}>{t('stats.allTimeTitle')}</Text>
+          <View style={styles.allTimeCard}>
+            {[
+              [
+                { label: t('stats.totalSessions'), value: allTimeStats.totalSessions },
+                { label: t('stats.totalMinutes'), value: allTimeStats.totalMinutes },
+              ],
+              [
+                { label: t('stats.roundsThrown'), value: allTimeStats.totalRounds },
+                { label: t('stats.dayStreak'), value: allTimeStats.currentStreak },
+              ],
+            ].map((row, rowIndex) => (
+              <View key={rowIndex} style={[styles.allTimeRow, rowIndex > 0 && styles.listRowRule]}>
+                {row.map((stat, index) => (
+                  <View key={stat.label} style={[styles.statCell, index > 0 && styles.statCellRule]}>
+                    <Text style={styles.statLabel}>{stat.label}</Text>
+                    <Text style={styles.statValue}>{stat.value}</Text>
+                  </View>
+                ))}
+              </View>
+            ))}
           </View>
         </View>
 
@@ -261,7 +258,7 @@ export default function StatsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#141416',
+    backgroundColor: colors.ground,
   },
 
   // Header
@@ -272,38 +269,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1C1C24',
+    borderBottomColor: colors.rule,
   },
   logoText: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.text,
     letterSpacing: 3,
   },
   logoAccent: {
-    color: '#D42020',
+    color: colors.red,
   },
 
   // Scroll
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20 },
-  scrollPad: { height: 16 },
+  scrollPad: { height: 24 },
 
   // Hero
   heroSection: {
-    paddingTop: 24,
-    paddingBottom: 8,
+    paddingTop: 20,
     gap: 4,
   },
   pageTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    ...type.title,
   },
   pageSubtitle: {
     fontSize: 14,
-    color: '#8B8B9E',
-    fontWeight: '500',
+    color: colors.muted,
   },
 
   // Sections
@@ -312,184 +305,168 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#8B8B9E',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    ...type.section,
   },
 
-  // Period switcher
+  // Period switcher: the selection is a lighter pill, not a colour
   periodSwitcher: {
     flexDirection: 'row',
-    backgroundColor: '#1C1C24',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.control + 2,
     padding: 4,
     gap: 4,
   },
   periodOption: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 9,
+    height: 36,
+    borderRadius: radius.control - 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   periodOptionActive: {
-    backgroundColor: '#D42020',
+    backgroundColor: colors.raised,
   },
   periodOptionText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#8B8B9E',
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.faint,
   },
   periodOptionTextActive: {
-    color: '#FFFFFF',
+    color: colors.text,
+    fontWeight: '600',
   },
 
-  // Period stats
+  // KPI strip: one surface split by hairlines, label over value
   statsRow: {
     flexDirection: 'row',
-    backgroundColor: '#1C1C24',
-    borderRadius: 14,
-    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
   },
-  statCard: {
+  statCell: {
     flex: 1,
-    alignItems: 'center',
-    paddingVertical: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     gap: 4,
   },
-  statDivider: {
-    width: 1,
-    backgroundColor: '#2A2A34',
-    marginVertical: 16,
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFFFFF',
+  statCellRule: {
+    borderLeftWidth: 1,
+    borderLeftColor: colors.rule,
   },
   statLabel: {
-    fontSize: 11,
-    color: '#8B8B9E',
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    fontSize: 13,
+    color: colors.muted,
   },
-
-  // All-time grid
-  gridRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  gridCard: {
-    flex: 1,
-    backgroundColor: '#1C1C24',
-    borderRadius: 14,
-    paddingVertical: 18,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    gap: 4,
-  },
-  gridValue: {
+  statValue: {
     fontSize: 26,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  gridLabel: {
-    fontSize: 12,
-    color: '#8B8B9E',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  streakCard: {
-    borderWidth: 1,
-    borderColor: '#D42020',
-  },
-  streakValue: {
-    color: '#E83535',
+    fontWeight: '600',
+    color: colors.text,
+    fontVariant: ['tabular-nums'],
   },
 
-  // Workout breakdown
-  breakdownCard: {
-    backgroundColor: '#1C1C24',
-    borderRadius: 14,
-    padding: 16,
+  // All-time: the same strip, two by two
+  allTimeCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+  },
+  allTimeRow: {
+    flexDirection: 'row',
+  },
+
+  // Lists: one surface, rows split by a hairline
+  listCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    paddingHorizontal: 16,
+  },
+  listRow: {
+    minHeight: 60,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 12,
   },
-  breakdownInfo: {
+  listRowRule: {
+    borderTopWidth: 1,
+    borderTopColor: colors.rule,
+  },
+  rowInfo: {
     flex: 1,
-    gap: 3,
+    gap: 4,
   },
-  breakdownName: {
+  rowName: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '600',
+    color: colors.text,
   },
-  breakdownMeta: {
-    fontSize: 12,
-    color: '#8B8B9E',
+  rowMeta: {
+    ...type.meta,
   },
-  breakdownCount: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#D42020',
-    marginLeft: 12,
+  rowFigure: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    fontVariant: ['tabular-nums'],
+    textAlign: 'right',
+  },
+
+  // Punch breakdown rows
+  punchRow: {
+    paddingVertical: 12,
+    gap: 8,
+  },
+  punchLine: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  punchName: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+  },
+  punchZero: {
+    fontSize: 15,
+    color: colors.faint,
+    fontVariant: ['tabular-nums'],
+    textAlign: 'right',
+  },
+  punchTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.raised,
+    overflow: 'hidden',
+  },
+  punchBar: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.red,
   },
 
   // Recent sessions
-  sessionCard: {
-    backgroundColor: '#1C1C24',
-    borderRadius: 14,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  partialBadge: {
+    flex: 0,
+    backgroundColor: colors.raised,
+    borderRadius: radius.chip,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
-  sessionInfo: {
-    flex: 1,
-    gap: 3,
-  },
-  sessionName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  sessionMeta: {
+  partialBadgeText: {
     fontSize: 12,
-    color: '#8B8B9E',
-  },
-  completedBadge: {
-    backgroundColor: '#0F2A18',
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginLeft: 12,
-  },
-  completedBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#3DBE5C',
-  },
-  incompleteBadge: {
-    backgroundColor: '#2A1010',
-  },
-  incompleteBadgeText: {
-    color: '#E83535',
+    fontWeight: '500',
+    color: colors.muted,
   },
 
   // Empty state
   emptyCard: {
-    backgroundColor: '#1C1C24',
-    borderRadius: 14,
-    padding: 20,
-    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    padding: 16,
   },
   emptyText: {
-    fontSize: 13,
-    color: '#8B8B9E',
-    textAlign: 'center',
-    lineHeight: 18,
+    fontSize: 14,
+    color: colors.muted,
+    lineHeight: 20,
   },
 });

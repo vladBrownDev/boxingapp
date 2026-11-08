@@ -7,6 +7,7 @@ import { describeMove } from '../data/punchNotation';
 import { getWorkoutCombos, getWorkoutName } from '../data/workouts';
 import { useTranslation } from '../i18n/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
+import { colors, radius, type } from '../theme';
 
 export interface WorkoutRunConfig {
   workSeconds: number;
@@ -49,7 +50,7 @@ export default function WorkoutSetupScreen({ navigation, route }: Props) {
         <TouchableOpacity onPress={navigation.goBack} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Text style={styles.backArrow}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{getWorkoutName(t, workout)}</Text>
+        <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>{getWorkoutName(t, workout)}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -108,7 +109,7 @@ export default function WorkoutSetupScreen({ navigation, route }: Props) {
             <View key={combo.id} style={styles.comboCard}>
               <Text style={styles.comboName}>{getComboName(t, combo)}</Text>
               <Text style={styles.comboSequence}>
-                {combo.sequence.map(step => describeMove(t, step)).join('  •  ')}
+                {combo.sequence.map(step => describeMove(t, step)).join('  ·  ')}
               </Text>
             </View>
           ))}
@@ -137,7 +138,7 @@ export default function WorkoutSetupScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#141416',
+    backgroundColor: colors.ground,
   },
   header: {
     flexDirection: 'row',
@@ -145,19 +146,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1C1C24',
+    borderBottomColor: colors.rule,
   },
   backArrow: {
     fontSize: 32,
-    color: '#FFFFFF',
+    color: colors.text,
     width: 40,
     textAlign: 'center',
   },
   headerTitle: {
     flex: 1,
     fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '600',
+    color: colors.text,
     textAlign: 'center',
   },
   headerSpacer: {
@@ -168,86 +169,81 @@ const styles = StyleSheet.create({
   scrollPad: { height: 16 },
   summaryRow: {
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 4,
   },
   summaryText: {
-    fontSize: 14,
-    color: '#8B8B9E',
-    fontWeight: '500',
+    fontSize: 15,
+    color: colors.muted,
+    fontVariant: ['tabular-nums'],
   },
   section: {
-    marginTop: 20,
+    marginTop: 24,
     gap: 12,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#8B8B9E',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    ...type.section,
   },
   stepperRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1C1C24',
-    borderRadius: 14,
-    paddingVertical: 12,
-    gap: 24,
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    padding: 12,
   },
   stepperBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#2A2A32',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.raised,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepperBtnText: {
     fontSize: 24,
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: colors.text,
+    fontWeight: '500',
   },
   stepperValue: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    minWidth: 90,
+    fontSize: 32,
+    fontWeight: '600',
+    color: colors.text,
+    minWidth: 100,
     textAlign: 'center',
+    fontVariant: ['tabular-nums'],
   },
   comboCard: {
-    backgroundColor: '#1C1C24',
-    borderRadius: 12,
-    padding: 14,
-    gap: 4,
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    padding: 16,
+    gap: 6,
   },
   comboName: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '600',
+    color: colors.text,
   },
   comboSequence: {
-    fontSize: 13,
-    color: '#E83535',
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontSize: 14,
+    color: colors.muted,
+    lineHeight: 20,
   },
   footer: {
     paddingHorizontal: 20,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#1C1C24',
+    borderTopColor: colors.rule,
   },
   startButton: {
-    backgroundColor: '#D42020',
-    borderRadius: 14,
-    paddingVertical: 18,
+    backgroundColor: colors.red,
+    borderRadius: radius.card,
+    height: 56,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   startButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 1,
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '700',
   },
 });

@@ -49,15 +49,6 @@ export default function WelcomeScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      {/* Corner accents */}
-      <View style={styles.cornerAccentTL} />
-      <View style={styles.cornerAccentBR} />
-
-      {/* Subtle horizontal lines */}
-      <View style={[styles.line, styles.line1]} />
-      <View style={[styles.line, styles.line2]} />
-      <View style={[styles.line, styles.line3]} />
-
       <Animated.View
         style={[
           styles.content,
@@ -80,22 +71,14 @@ export default function WelcomeScreen({ navigation }: Props) {
 
         {/* Hero Text */}
         <View style={styles.heroSection}>
-          <Text style={styles.headline}>{t('welcome.headline')}</Text>
+          <Text style={styles.headline} accessibilityRole="header">{t('welcome.headline')}</Text>
           <Text style={styles.subheading}>{t('welcome.subheading')}</Text>
         </View>
 
-        {/* Feature pills */}
-        <View style={styles.pillsRow}>
-          <View style={styles.pill}>
-            <Text style={styles.pillText}>{t('welcome.pill.combos')}</Text>
-          </View>
-          <View style={styles.pill}>
-            <Text style={styles.pillText}>{t('welcome.pill.timer')}</Text>
-          </View>
-          <View style={styles.pill}>
-            <Text style={styles.pillText}>{t('welcome.pill.progress')}</Text>
-          </View>
-        </View>
+        {/* What's inside */}
+        <Text style={styles.features}>
+          {[t('welcome.pill.combos'), t('welcome.pill.timer'), t('welcome.pill.progress')].join('  ·  ')}
+        </Text>
 
         <View style={styles.spacer} />
 
@@ -129,39 +112,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#141416',
     overflow: 'hidden',
   },
-  cornerAccentTL: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: 80,
-    height: 80,
-    borderTopWidth: 3,
-    borderLeftWidth: 3,
-    borderColor: '#D42020',
-    opacity: 0.35,
-  },
-  cornerAccentBR: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 80,
-    height: 80,
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
-    borderColor: '#D42020',
-    opacity: 0.35,
-  },
-  line: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: '#D42020',
-    opacity: 0.06,
-  },
-  line1: { top: '32%' },
-  line2: { top: '47%' },
-  line3: { top: '62%' },
   content: {
     flex: 1,
     paddingHorizontal: 28,
@@ -180,7 +130,8 @@ const styles = StyleSheet.create({
   },
   headline: {
     fontSize: 30,
-    fontWeight: '800',
+    fontWeight: '700',
+    letterSpacing: -0.4,
     color: '#FFFFFF',
     textAlign: 'center',
     lineHeight: 38,
@@ -192,24 +143,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  pillsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  pill: {
-    borderWidth: 1,
-    borderColor: '#2A2A32',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    backgroundColor: '#1C1C24',
-  },
-  pillText: {
-    color: '#8B8B9E',
-    fontSize: 13,
-    fontWeight: '500',
+  features: {
+    fontSize: 14,
+    color: '#A3A3B2',
+    textAlign: 'center',
   },
   spacer: {
     flex: 1,
@@ -222,28 +159,22 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 18,
     alignItems: 'center',
-    shadowColor: '#D42020',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-    elevation: 8,
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
   secondaryButton: {
     alignItems: 'center',
     paddingVertical: 12,
   },
   secondaryButtonText: {
-    color: '#555566',
+    color: '#8B8B9E',
     fontSize: 14,
   },
   signInLink: {
-    color: '#E83535',
+    color: '#FFFFFF',
     fontWeight: '600',
   },
 });

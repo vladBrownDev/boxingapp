@@ -9,6 +9,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BottomNav, { NavTab } from '../components/BottomNav';
+import HeartIcon from '../components/HeartIcon';
+import WeekStrip from '../components/WeekStrip';
 import { getPunchLabel } from '../data/punchNotation';
 import { getSuggestedWorkout, getWorkoutDurationMinutes, getWorkoutName, WORKOUTS } from '../data/workouts';
 import { useFavorites } from '../hooks/useFavorites';
@@ -17,6 +19,7 @@ import { useTranslation } from '../i18n/LanguageContext';
 import { TranslationKey } from '../i18n/translations';
 import { RootStackParamList } from '../navigation/types';
 import { formatSessionDate } from '../storage/workoutStorage';
+import { colors, radius, type } from '../theme';
 
 function getGreetingKey(): TranslationKey {
   const hour = new Date().getHours();
@@ -32,7 +35,7 @@ export default function DashboardScreen({ navigation }: Props) {
   const [activeTab, setActiveTab] = useState<NavTab>('home');
   const { t, locale } = useTranslation();
   const greeting = t(useMemo(getGreetingKey, []));
-  const { sessions, weekStats, punchBreakdown } = useWorkoutStats();
+  const { sessions, trainingDays, allTimeStats, punchBreakdown } = useWorkoutStats();
   const { favoriteIds, toggleFavorite } = useFavorites();
 
   const suggested = useMemo(() => getSuggestedWorkout(punchBreakdown), [punchBreakdown]);
@@ -82,38 +85,28 @@ export default function DashboardScreen({ navigation }: Props) {
 
         {/* Greeting + START CTA */}
         <View style={styles.heroSection}>
-          <Text style={styles.greeting}>{greeting}</Text>
+          <Text style={styles.greeting} accessibilityRole="header">{greeting}</Text>
           <TouchableOpacity
             style={styles.startButton}
             onPress={() => navigation.navigate('WorkoutList')}
             activeOpacity={0.85}>
-            <View style={styles.startButtonInner}>
-              <Text style={styles.startButtonIcon}>▶</Text>
-              <Text style={styles.startButtonText}>{t('dashboard.startWorkout')}</Text>
-            </View>
+            <Text style={styles.startButtonText}>{t('dashboard.startWorkout')}</Text>
           </TouchableOpacity>
         </View>
 
-        {/* This Week's Stats */}
+        {/* This week against the training schedule */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊  {t('dashboard.statsTitle')}</Text>
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{weekStats.sessions}</Text>
-              <Text style={styles.statLabel}>{t('dashboard.sessions')}</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{weekStats.minutes}</Text>
-              <Text style={styles.statLabel}>{t('dashboard.minutes')}</Text>
-            </View>
-          </View>
+          <WeekStrip
+            sessions={sessions}
+            trainingDays={trainingDays}
+            streak={allTimeStats.currentStreak}
+          />
         </View>
 
         {/* Suggested Workout */}
         {sessions.length > 0 && suggested && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🎯  {t('dashboard.suggestedTitle')}</Text>
+            <Text style={styles.sectionTitle}>{t('dashboard.suggestedTitle')}</Text>
             <View style={styles.suggestedCard}>
               <View style={styles.suggestedTop}>
                 <Text style={styles.suggestedName}>{getWorkoutName(t, suggested.workout)}</Text>
@@ -138,7 +131,7 @@ export default function DashboardScreen({ navigation }: Props) {
                 style={styles.suggestedBtn}
                 activeOpacity={0.8}
                 onPress={() => navigation.navigate('WorkoutSetup', { workout: suggested.workout })}>
-                <Text style={styles.suggestedBtnText}>▶  {t('dashboard.start')}</Text>
+                <Text style={styles.suggestedBtnText}>{t('dashboard.start')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -146,60 +139,61 @@ export default function DashboardScreen({ navigation }: Props) {
 
         {/* Recent Workouts */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📋  {t('dashboard.recentTitle')}</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.recentTitle')}</Text>
           {recentWorkouts.length === 0 ? (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyText}>{t('dashboard.emptyRecent')}</Text>
             </View>
           ) : (
-            recentWorkouts.map(({ session, workout, isFavorite }) => (
-              <View key={session.id} style={styles.workoutCard}>
-                <TouchableOpacity
-                  style={styles.workoutInfo}
-                  activeOpacity={0.7}
-                  disabled={!workout}
-                  onPress={() => workout && navigation.navigate('WorkoutSetup', { workout })}>
-                  <Text style={styles.workoutName}>
-                    {workout ? getWorkoutName(t, workout) : session.workoutName}
-                  </Text>
-                  <Text style={styles.workoutMeta}>
-                    {workout
-                      ? t('dashboard.workoutMeta', {
+            <View style={styles.listCard}>
+              {recentWorkouts.map(({ session, workout, isFavorite }, index) => (
+                <View key={session.id} style={[styles.workoutRow, index > 0 && styles.workoutRowRule]}>
+                  <TouchableOpacity
+                    style={styles.workoutInfo}
+                    activeOpacity={0.7}
+                    disabled={!workout}
+                    onPress={() => workout && navigation.navigate('WorkoutSetup', { workout })}>
+                    <Text style={styles.workoutName}>
+                      {workout ? getWorkoutName(t, workout) : session.workoutName}
+                    </Text>
+                    <Text style={styles.workoutMeta}>
+                      {workout
+                        ? t('dashboard.workoutMeta', {
                           minutes: getWorkoutDurationMinutes(workout),
                           rounds: workout.rounds,
                         })
-                      : t(
+                        : t(
                           session.roundsCompleted === 1
                             ? 'dashboard.roundsFallback_one'
                             : 'dashboard.roundsFallback_other',
                           { count: session.roundsCompleted },
                         )}
-                  </Text>
-                  <Text style={styles.workoutLast}>{formatSessionDate(session.timestamp, locale)}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => toggleFavorite(session.workoutId)}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  activeOpacity={0.7}>
-                  <Text style={styles.heartIcon}>
-                    {isFavorite ? '❤️' : '🤍'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ))
+                      {'  ·  '}
+                      {formatSessionDate(session.timestamp, locale)}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.heartButton}
+                    onPress={() => toggleFavorite(session.workoutId)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isFavorite }}
+                    activeOpacity={0.7}>
+                    <HeartIcon filled={isFavorite} color={isFavorite ? colors.red : colors.faint} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
           )}
         </View>
 
         {/* Premium Banner */}
         <TouchableOpacity style={styles.premiumBanner} activeOpacity={0.85}>
           <View style={styles.premiumLeft}>
-            <Text style={styles.premiumCrown}>👑</Text>
-            <View>
-              <Text style={styles.premiumTitle}>{t('dashboard.premiumTitle')}</Text>
-              <Text style={styles.premiumDesc}>{t('dashboard.premiumDesc')}</Text>
-            </View>
+            <Text style={styles.premiumTitle}>{t('dashboard.premiumTitle')}</Text>
+            <Text style={styles.premiumDesc}>{t('dashboard.premiumDesc')}</Text>
           </View>
-          <Text style={styles.premiumArrow}>›</Text>
+          <View style={styles.chevron} />
         </TouchableOpacity>
 
         <View style={styles.scrollPad} />
@@ -213,7 +207,7 @@ export default function DashboardScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#141416',
+    backgroundColor: colors.ground,
   },
 
   // Header
@@ -224,248 +218,184 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1C1C24',
+    borderBottomColor: colors.rule,
   },
   logoText: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.text,
     letterSpacing: 3,
   },
   logoAccent: {
-    color: '#D42020',
-  },
-  settingsBtn: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  settingsIcon: {
-    fontSize: 22,
+    color: colors.red,
   },
 
   // Scroll
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20 },
-  scrollPad: { height: 16 },
+  scrollPad: { height: 24 },
 
   // Hero
   heroSection: {
-    paddingTop: 24,
-    paddingBottom: 8,
+    paddingTop: 20,
     gap: 16,
   },
   greeting: {
-    fontSize: 16,
-    color: '#8B8B9E',
-    fontWeight: '500',
+    ...type.title,
   },
   startButton: {
-    backgroundColor: '#D42020',
-    borderRadius: 16,
-    paddingVertical: 20,
-    shadowColor: '#D42020',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  startButtonInner: {
-    flexDirection: 'row',
+    backgroundColor: colors.red,
+    borderRadius: radius.card,
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-  },
-  startButtonIcon: {
-    fontSize: 18,
-    color: '#FFFFFF',
   },
   startButtonText: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 2,
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.text,
   },
 
   // Sections
   section: {
-    marginTop: 28,
+    marginTop: 32,
     gap: 12,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#8B8B9E',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-
-  // Stats
-  statsRow: {
-    flexDirection: 'row',
-    backgroundColor: '#1C1C24',
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 18,
-    gap: 4,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: '#2A2A34',
-    marginVertical: 16,
-  },
-  statValue: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#8B8B9E',
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    ...type.section,
   },
 
   // Suggested workout
   suggestedCard: {
-    backgroundColor: '#1C1C24',
-    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
     padding: 16,
-    borderLeftWidth: 3,
-    borderLeftColor: '#D42020',
-    gap: 10,
+    gap: 8,
   },
   suggestedTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 12,
   },
   suggestedName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    flex: 1,
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.text,
   },
   levelBadge: {
-    backgroundColor: '#2A1010',
-    borderWidth: 1,
-    borderColor: '#D42020',
-    borderRadius: 6,
+    flex: 0,
+    backgroundColor: colors.raised,
+    borderRadius: radius.chip,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
   levelText: {
-    color: '#D42020',
-    fontSize: 11,
-    fontWeight: '600',
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '500',
   },
   suggestedMeta: {
-    fontSize: 13,
-    color: '#8B8B9E',
+    ...type.meta,
   },
   suggestedFocus: {
-    fontSize: 13,
-    color: '#8B8B9E',
-    lineHeight: 18,
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
   },
   suggestedBtn: {
     alignSelf: 'flex-start',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: '#D42020',
-    borderRadius: 8,
+    marginTop: 4,
+    height: 36,
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    backgroundColor: colors.inverse,
+    borderRadius: 18,
   },
   suggestedBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    color: colors.inverseText,
+    fontSize: 14,
+    fontWeight: '600',
   },
 
-  // Workout cards
-  workoutCard: {
-    backgroundColor: '#1C1C24',
-    borderRadius: 14,
-    padding: 16,
+  // Recent workouts: one surface, rows split by a hairline
+  listCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    paddingHorizontal: 16,
+  },
+  workoutRow: {
+    minHeight: 64,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  workoutRowRule: {
+    borderTopWidth: 1,
+    borderTopColor: colors.rule,
+  },
   workoutInfo: {
     flex: 1,
-    gap: 3,
+    gap: 4,
   },
   workoutName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
   },
   workoutMeta: {
-    fontSize: 13,
-    color: '#8B8B9E',
+    ...type.meta,
   },
-  workoutLast: {
-    fontSize: 12,
-    color: '#555566',
-  },
-  heartIcon: {
-    fontSize: 22,
-    marginLeft: 12,
+  heartButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
 
   // Empty state
   emptyCard: {
-    backgroundColor: '#1C1C24',
-    borderRadius: 14,
-    padding: 20,
-    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    padding: 16,
   },
   emptyText: {
-    fontSize: 13,
-    color: '#8B8B9E',
-    textAlign: 'center',
-    lineHeight: 18,
+    fontSize: 14,
+    color: colors.muted,
+    lineHeight: 20,
   },
 
   // Premium banner
   premiumBanner: {
-    marginTop: 28,
-    backgroundColor: '#1A0A00',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#3A1A00',
+    marginTop: 32,
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 12,
   },
   premiumLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
     flex: 1,
-  },
-  premiumCrown: {
-    fontSize: 28,
+    gap: 4,
   },
   premiumTitle: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#FFB347',
-    marginBottom: 2,
+    fontWeight: '600',
+    color: colors.text,
   },
   premiumDesc: {
-    fontSize: 12,
-    color: '#8B6A3E',
+    ...type.meta,
   },
-  premiumArrow: {
-    fontSize: 24,
-    color: '#FFB347',
-    fontWeight: '300',
+  chevron: {
+    width: 8,
+    height: 8,
+    borderRightWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: colors.faint,
+    transform: [{ rotate: '-45deg' }],
   },
 });

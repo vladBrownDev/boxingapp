@@ -28,6 +28,7 @@ import {
 } from '../storage/notificationSettings';
 import { ALL_WEEKDAYS, loadTrainingDays, saveTrainingDays } from '../storage/trainingSchedule';
 import { formatClockTime } from '../storage/workoutStorage';
+import { colors, radius, type } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Menu'>;
 
@@ -124,7 +125,7 @@ export default function MenuScreen({ navigation }: Props) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
         <View style={styles.heroSection}>
-          <Text style={styles.pageTitle}>{t('menu.title')}</Text>
+          <Text style={styles.pageTitle} accessibilityRole="header">{t('menu.title')}</Text>
           <Text style={styles.pageSubtitle}>{t('menu.subtitle')}</Text>
         </View>
 
@@ -154,9 +155,9 @@ export default function MenuScreen({ navigation }: Props) {
             <Switch
               value={notifSettings.remindersEnabled}
               onValueChange={handleRemindersToggle}
-              trackColor={{ false: '#2A2A32', true: '#D42020' }}
-              thumbColor="#FFFFFF"
-              ios_backgroundColor="#2A2A32"
+              trackColor={{ false: colors.raised, true: colors.inverse }}
+              thumbColor={notifSettings.remindersEnabled ? colors.ground : colors.faint}
+              ios_backgroundColor={colors.raised}
             />
           </View>
           <View style={styles.groupDivider} />
@@ -273,7 +274,7 @@ export default function MenuScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#141416',
+    backgroundColor: colors.ground,
   },
 
   header: {
@@ -283,16 +284,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1C1C24',
+    borderBottomColor: colors.rule,
   },
   logoText: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.text,
     letterSpacing: 3,
   },
   logoAccent: {
-    color: '#D42020',
+    color: colors.red,
   },
 
   scroll: { flex: 1 },
@@ -303,29 +304,24 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   pageTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    ...type.title,
   },
   pageSubtitle: {
     fontSize: 13,
-    color: '#8B8B9E',
+    color: colors.muted,
     marginTop: 2,
   },
 
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#8B8B9E',
-    letterSpacing: 1,
+    ...type.section,
     marginBottom: 10,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1C1C24',
-    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
@@ -333,8 +329,8 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   group: {
-    backgroundColor: '#1C1C24',
-    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
   },
   groupRow: {
     flexDirection: 'row',
@@ -346,7 +342,7 @@ const styles = StyleSheet.create({
   },
   groupDivider: {
     height: 1,
-    backgroundColor: '#141416',
+    backgroundColor: colors.ground,
     marginLeft: 16,
   },
   daysSection: {
@@ -355,20 +351,20 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   rowDisabled: {
-    opacity: 0.4,
+    opacity: 0.5,
   },
   hint: {
-    fontSize: 12,
-    color: '#8B8B9E',
+    fontSize: 13,
+    color: colors.muted,
     marginTop: 8,
     marginHorizontal: 4,
-    lineHeight: 17,
+    lineHeight: 18,
   },
   rowLabel: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '500',
     lineHeight: 18,
-    color: '#FFFFFF',
+    color: colors.text,
   },
   rowValue: {
     flexDirection: 'row',
@@ -377,14 +373,14 @@ const styles = StyleSheet.create({
   },
   rowValueText: {
     fontSize: 14,
-    color: '#8B8B9E',
+    color: colors.muted,
   },
   chevron: {
     width: 7,
     height: 7,
     borderRightWidth: 2,
     borderBottomWidth: 2,
-    borderColor: '#8B8B9E',
+    borderColor: colors.faint,
     transform: [{ rotate: '-45deg' }],
   },
 
@@ -394,7 +390,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#1C1C24',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 16,
@@ -403,7 +399,7 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.text,
     marginBottom: 12,
   },
   option: {
@@ -412,20 +408,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: '#141416',
+    borderTopColor: colors.ground,
   },
   optionText: {
     fontSize: 15,
-    color: '#8B8B9E',
+    color: colors.muted,
   },
   optionTextActive: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontWeight: '700',
   },
   timePreview: {
     fontSize: 32,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: '600',
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 12,
     fontVariant: ['tabular-nums'],
@@ -437,7 +433,7 @@ const styles = StyleSheet.create({
   },
   timeColumn: {
     flex: 1,
-    backgroundColor: '#141416',
+    backgroundColor: colors.ground,
     borderRadius: 12,
   },
   timeItem: {
@@ -446,26 +442,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   timeItemActive: {
-    backgroundColor: '#2A2A32',
-    borderLeftWidth: 3,
-    borderLeftColor: '#D42020',
+    backgroundColor: colors.raised,
   },
   saveButton: {
-    backgroundColor: '#D42020',
-    borderRadius: 14,
-    paddingVertical: 16,
+    backgroundColor: colors.inverse,
+    borderRadius: radius.card,
+    height: 52,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 16,
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: colors.inverseText,
     fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontWeight: '700',
   },
   checkmark: {
     fontSize: 16,
-    color: '#D42020',
+    color: colors.text,
     fontWeight: '700',
   },
 });

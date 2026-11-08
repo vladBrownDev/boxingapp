@@ -4,18 +4,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BottomNav, { NavTab } from '../components/BottomNav';
 import { getComboName } from '../data/combos';
-import { getWorkoutCombos, getWorkoutDurationMinutes, getWorkoutName, Workout, WORKOUTS } from '../data/workouts';
+import { getWorkoutCombos, getWorkoutDurationMinutes, getWorkoutName, WORKOUTS } from '../data/workouts';
 import { useTranslation } from '../i18n/LanguageContext';
 import { TranslationKey } from '../i18n/translations';
 import { RootStackParamList } from '../navigation/types';
+import { colors, radius, type } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutList'>;
-
-const LEVEL_COLORS: Record<Workout['level'], string> = {
-  Beginner: '#3DBE5C',
-  Intermediate: '#E8A735',
-  Advanced: '#E83535',
-};
 
 export default function WorkoutListScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
@@ -44,7 +39,7 @@ export default function WorkoutListScreen({ navigation }: Props) {
         <TouchableOpacity onPress={navigation.goBack} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Text style={styles.backArrow}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('workoutList.headerTitle')}</Text>
+        <Text style={styles.headerTitle} accessibilityRole="header">{t('workoutList.headerTitle')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -62,12 +57,8 @@ export default function WorkoutListScreen({ navigation }: Props) {
               onPress={() => navigation.navigate('WorkoutSetup', { workout })}>
               <View style={styles.cardTop}>
                 <Text style={styles.cardName}>{getWorkoutName(t, workout)}</Text>
-                <View
-                  style={[
-                    styles.levelBadge,
-                    { borderColor: LEVEL_COLORS[workout.level] },
-                  ]}>
-                  <Text style={[styles.levelText, { color: LEVEL_COLORS[workout.level] }]}>
+                <View style={styles.levelBadge}>
+                  <Text style={styles.levelText}>
                     {t(`level.${workout.level}` as TranslationKey)}
                   </Text>
                 </View>
@@ -95,7 +86,7 @@ export default function WorkoutListScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#141416',
+    backgroundColor: colors.ground,
   },
   header: {
     flexDirection: 'row',
@@ -103,19 +94,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1C1C24',
+    borderBottomColor: colors.rule,
   },
   backArrow: {
     fontSize: 32,
-    color: '#FFFFFF',
+    color: colors.text,
     width: 40,
     textAlign: 'center',
   },
   headerTitle: {
     flex: 1,
     fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '600',
+    color: colors.text,
     textAlign: 'center',
   },
   headerSpacer: {
@@ -123,40 +114,43 @@ const styles = StyleSheet.create({
   },
   scroll: { flex: 1 },
   scrollContent: { padding: 20, gap: 12 },
-  scrollPad: { height: 16 },
+  scrollPad: { height: 12 },
   card: {
-    backgroundColor: '#1C1C24',
-    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
     padding: 16,
     gap: 6,
-    marginBottom: 12,
   },
   cardTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 12,
   },
   cardName: {
+    flex: 1,
     fontSize: 17,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '600',
+    color: colors.text,
   },
   levelBadge: {
-    borderWidth: 1,
-    borderRadius: 6,
+    flex: 0,
+    backgroundColor: colors.raised,
+    borderRadius: radius.chip,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
   levelText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.muted,
   },
   cardMeta: {
-    fontSize: 13,
-    color: '#8B8B9E',
+    fontSize: 14,
+    color: colors.text,
+    fontVariant: ['tabular-nums'],
   },
   cardCombos: {
-    fontSize: 12,
-    color: '#555566',
+    ...type.meta,
   },
 });

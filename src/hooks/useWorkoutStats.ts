@@ -41,6 +41,7 @@ export function useWorkoutStats() {
 
   return {
     sessions,
+    trainingDays,
     todayStats,
     weekStats,
     allTimeStats,

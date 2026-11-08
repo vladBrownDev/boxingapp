@@ -8,12 +8,14 @@ import NotificationPrompt from '../components/NotificationPrompt';
 import PunchIllustration from '../components/PunchIllustration';
 import { Combo, getComboName } from '../data/combos';
 import { describeMove, getStepPunch } from '../data/punchNotation';
+import { pickRandomTip } from '../data/tips';
 import { getWorkoutCombos, getWorkoutName, Workout } from '../data/workouts';
 import { TFunction, useTranslation } from '../i18n/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { requestNotificationPermission, rescheduleNotifications } from '../notifications/reminders';
 import { loadNotificationSettings, saveNotificationSettings } from '../storage/notificationSettings';
 import { addSession, WorkoutSession } from '../storage/workoutStorage';
+import { colors, radius } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutPlayer'>;
 
@@ -27,6 +29,9 @@ interface PlayerState {
 
 /** Countdown before round 1 so the user has time to put their gloves on. */
 const PREP_SECONDS = 10;
+
+/** How much the "+15 sec" button extends the current rest. */
+const REST_EXTENSION_SECONDS = 15;
 
 function formatTime(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
@@ -48,16 +53,17 @@ function buildSession(
     state.phase === 'done'
       ? workout.rounds
       : state.phase === 'ready'
-      ? 0
-      : state.phase === 'work'
-      ? state.roundIndex
-      : state.roundIndex + 1;
+        ? 0
+        : state.phase === 'work'
+          ? state.roundIndex
+          : state.roundIndex + 1;
 
   let activeDuration = state.roundIndex * (workSeconds + restSeconds);
   if (state.phase === 'work') {
     activeDuration += workSeconds - state.secondsLeft;
   } else if (state.phase === 'rest') {
-    activeDuration += workSeconds + (restSeconds - state.secondsLeft);
+    // Clamped: rest extended via the "+15 sec" button can leave more than restSeconds on the clock.
+    activeDuration += workSeconds + Math.max(0, restSeconds - state.secondsLeft);
   } else if (state.phase === 'done') {
     activeDuration = workout.rounds * workSeconds + (workout.rounds - 1) * restSeconds;
   } else {
@@ -100,6 +106,7 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
   });
   const [isPaused, setIsPaused] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [tipKey, setTipKey] = useState(() => pickRandomTip());
   const hasLoggedRef = useRef(false);
 
   const logSession = useCallback(
@@ -128,6 +135,13 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
       playBell();
     }
   }, [state.phase]);
+
+  // Fresh tip for every rest period (the prep countdown gets the one picked on mount).
+  useEffect(() => {
+    if (state.phase === 'rest') {
+      setTipKey(prev => pickRandomTip(prev));
+    }
+  }, [state.phase, state.roundIndex]);
 
   useEffect(() => {
     if (isPaused || state.phase === 'done') {
@@ -184,6 +198,12 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
       }
     });
   }, [isDone]);
+
+  const extendRest = () => {
+    setState(prev =>
+      prev.phase === 'rest' ? { ...prev, secondsLeft: prev.secondsLeft + REST_EXTENSION_SECONDS } : prev,
+    );
+  };
 
   const handleAllowNotifications = async () => {
     setShowNotificationPrompt(false);
@@ -267,7 +287,19 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
         </View>
       </View>
 
+      {state.phase !== 'work' && (
+        <Text style={styles.tipText}>
+          <Text style={styles.tipLabel}>{t('player.tip')}: </Text>
+          {t(tipKey)}
+        </Text>
+      )}
+
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+        {state.phase === 'rest' && (
+          <TouchableOpacity style={styles.extendRestButton} activeOpacity={0.85} onPress={extendRest}>
+            <Text style={styles.extendRestButtonText}>{t('player.addRest')}</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={styles.pauseButton}
           activeOpacity={0.85}
@@ -282,7 +314,7 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#141416',
+    backgroundColor: colors.ground,
   },
   header: {
     flexDirection: 'row',
@@ -290,75 +322,84 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1C1C24',
+    borderBottomColor: colors.rule,
   },
   exitText: {
     fontSize: 15,
-    color: '#8B8B9E',
-    fontWeight: '600',
+    color: colors.muted,
+    fontWeight: '500',
     width: 60,
   },
   roundIndicator: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '600',
+    color: colors.text,
     textAlign: 'center',
+    fontVariant: ['tabular-nums'],
   },
   headerSpacer: {
     width: 60,
   },
   timerSection: {
     alignItems: 'center',
-    paddingTop: 40,
+    paddingTop: 32,
     paddingBottom: 24,
   },
   phaseLabel: {
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 4,
-    marginBottom: 12,
+    fontSize: 22,
+    fontWeight: '700',
   },
   phaseLabelWork: {
-    color: '#D42020',
+    color: colors.redText,
   },
   phaseLabelRest: {
-    color: '#8B8B9E',
+    color: colors.muted,
   },
   phaseLabelReady: {
-    color: '#FFFFFF',
+    color: colors.text,
   },
+  // Read from a few metres away mid-round, so it is far larger than any other figure in the app.
   timerText: {
-    fontSize: 72,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontSize: 96,
+    lineHeight: 108,
+    fontWeight: '700',
+    color: colors.text,
+    letterSpacing: -2,
     fontVariant: ['tabular-nums'],
   },
   readyHint: {
-    fontSize: 14,
+    fontSize: 15,
+    color: colors.muted,
+    marginTop: 4,
+  },
+  tipLabel: {
     fontWeight: '600',
-    color: '#8B8B9E',
-    marginTop: 12,
+    color: colors.text,
+  },
+  tipText: {
+    fontSize: 14,
+    color: colors.muted,
+    lineHeight: 20,
+    textAlign: 'center',
+    paddingHorizontal: 32,
   },
   comboSection: {
     flex: 1,
     paddingHorizontal: 24,
-    gap: 12,
+    gap: 6,
   },
   comboSectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#8B8B9E',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    fontSize: 14,
+    color: colors.muted,
     textAlign: 'center',
   },
   comboName: {
     fontSize: 22,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: '700',
+    color: colors.text,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 14,
   },
   chipsRow: {
     flexDirection: 'row',
@@ -369,8 +410,8 @@ const styles = StyleSheet.create({
   chip: {
     position: 'relative',
     alignItems: 'center',
-    backgroundColor: '#1C1C24',
-    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderRadius: radius.control,
     padding: 14,
     gap: 8,
     width: 136,
@@ -378,9 +419,10 @@ const styles = StyleSheet.create({
   chipArtEmpty: {
     width: 108,
     height: 108,
-    borderRadius: 14,
-    backgroundColor: '#2A2A32',
+    borderRadius: radius.card,
+    backgroundColor: colors.raised,
   },
+  // Step order within the combo: data, not decoration, so it stays neutral.
   chipBadge: {
     position: 'absolute',
     top: -10,
@@ -388,70 +430,87 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#D42020',
+    backgroundColor: colors.raised,
     borderWidth: 2,
-    borderColor: '#141416',
+    borderColor: colors.ground,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
   },
   chipBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
   },
   chipLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.text,
     textAlign: 'center',
-    lineHeight: 16,
+    lineHeight: 17,
   },
   footer: {
+    flexDirection: 'row',
+    gap: 12,
     paddingHorizontal: 20,
     paddingTop: 12,
   },
-  pauseButton: {
-    backgroundColor: '#2A2A32',
-    borderRadius: 14,
-    paddingVertical: 18,
+  extendRestButton: {
+    flex: 1,
+    backgroundColor: colors.raised,
+    borderRadius: radius.card,
+    height: 56,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  extendRestButtonText: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  // Pause is the one control during a round: primary by inversion.
+  pauseButton: {
+    flex: 1,
+    backgroundColor: colors.inverse,
+    borderRadius: radius.card,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pauseButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 1,
+    color: colors.inverseText,
+    fontSize: 17,
+    fontWeight: '700',
   },
   doneContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
+    gap: 12,
     paddingHorizontal: 32,
   },
   doneTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.text,
     textAlign: 'center',
   },
   doneSubtitle: {
     fontSize: 15,
-    color: '#8B8B9E',
+    color: colors.muted,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   primaryButton: {
-    backgroundColor: '#D42020',
-    borderRadius: 14,
-    paddingVertical: 18,
-    paddingHorizontal: 48,
+    backgroundColor: colors.inverse,
+    borderRadius: radius.card,
+    height: 56,
+    paddingHorizontal: 56,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 1,
+    color: colors.inverseText,
+    fontSize: 17,
+    fontWeight: '700',
   },
 });
