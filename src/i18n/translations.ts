@@ -180,10 +180,8 @@ const en = {
   'combo-slip-jab.name': 'Slip & Jab',
   'combo-hook-uppercut-cross.name': 'Hook-Uppercut-Cross',
   'combo-body-head-mix.name': 'Body-Head Combo',
-  'combo-duck-uppercut.name': 'Duck Under, Counter Uppercut',
-  'combo-pivot-escape.name': 'Pivot Escape Combo',
+  'combo-step-back-escape.name': 'Step-Back Escape Combo',
   'combo-five-punch.name': 'Five-Punch Combo',
-  'combo-weave-counter.name': 'Weave & Counter',
 
   'punch.LHJ': 'Left Head Jab',
   'punch.LBJ': 'Left Body Jab',
@@ -204,19 +202,9 @@ const en = {
 
   'defense.SL': 'Slip Left',
   'defense.SR': 'Slip Right',
-  'defense.DK': 'Duck',
-  'defense.WL': 'Weave Left',
-  'defense.WR': 'Weave Right',
-  'defense.PL': 'Parry Left',
-  'defense.PR': 'Parry Right',
-  'defense.BL': 'Block',
-  'defense.CU': 'Cover Up',
-  'defense.PVL': 'Pivot Left',
-  'defense.PVR': 'Pivot Right',
   'defense.SB': 'Step Back',
-  'defense.SI': 'Step In',
-  'defense.STL': 'Step Left',
-  'defense.STR': 'Step Right',
+  'defense.WL': 'Load Left Leg',
+  'defense.WR': 'Load Right Leg',
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -393,10 +381,8 @@ const es: Dict = {
   'combo-slip-jab.name': 'Esquiva y Jab',
   'combo-hook-uppercut-cross.name': 'Gancho-Uppercut-Cruzado',
   'combo-body-head-mix.name': 'Combo Cuerpo-Cabeza',
-  'combo-duck-uppercut.name': 'Agacharse y Contraatacar con Uppercut',
-  'combo-pivot-escape.name': 'Combo de Pivote y Escape',
+  'combo-step-back-escape.name': 'Combo de Escape con Paso Atrás',
   'combo-five-punch.name': 'Combo de Cinco Golpes',
-  'combo-weave-counter.name': 'Esquiva Lateral y Contraataque',
 
   'punch.LHJ': 'Jab Izquierdo a la Cabeza',
   'punch.LBJ': 'Jab Izquierdo al Cuerpo',
@@ -417,19 +403,9 @@ const es: Dict = {
 
   'defense.SL': 'Esquiva Izquierda',
   'defense.SR': 'Esquiva Derecha',
-  'defense.DK': 'Agacharse',
-  'defense.WL': 'Balanceo Izquierdo',
-  'defense.WR': 'Balanceo Derecho',
-  'defense.PL': 'Parada Izquierda',
-  'defense.PR': 'Parada Derecha',
-  'defense.BL': 'Bloqueo',
-  'defense.CU': 'Cubrirse',
-  'defense.PVL': 'Pivote Izquierdo',
-  'defense.PVR': 'Pivote Derecho',
   'defense.SB': 'Paso Atrás',
-  'defense.SI': 'Paso Adelante',
-  'defense.STL': 'Paso a la Izquierda',
-  'defense.STR': 'Paso a la Derecha',
+  'defense.WL': 'Cargar Pierna Izquierda',
+  'defense.WR': 'Cargar Pierna Derecha',
 };
 
 const fr: Dict = {
@@ -602,10 +578,8 @@ const fr: Dict = {
   'combo-slip-jab.name': 'Esquive et Jab',
   'combo-hook-uppercut-cross.name': 'Crochet-Uppercut-Direct',
   'combo-body-head-mix.name': 'Combo Corps-Tête',
-  'combo-duck-uppercut.name': 'Esquive en Bas, Uppercut de Contre',
-  'combo-pivot-escape.name': 'Combo Pivot et Sortie',
+  'combo-step-back-escape.name': 'Combo Sortie en Pas Arrière',
   'combo-five-punch.name': 'Combo de Cinq Coups',
-  'combo-weave-counter.name': 'Esquive Latérale et Contre',
 
   'punch.LHJ': 'Jab Gauche à la Tête',
   'punch.LBJ': 'Jab Gauche au Corps',
@@ -626,19 +600,9 @@ const fr: Dict = {
 
   'defense.SL': 'Esquive Gauche',
   'defense.SR': 'Esquive Droite',
-  'defense.DK': 'Esquive Basse',
-  'defense.WL': 'Balancement Gauche',
-  'defense.WR': 'Balancement Droit',
-  'defense.PL': 'Parade Gauche',
-  'defense.PR': 'Parade Droite',
-  'defense.BL': 'Blocage',
-  'defense.CU': 'Couverture',
-  'defense.PVL': 'Pivot Gauche',
-  'defense.PVR': 'Pivot Droit',
   'defense.SB': 'Pas en Arrière',
-  'defense.SI': 'Pas en Avant',
-  'defense.STL': 'Pas à Gauche',
-  'defense.STR': 'Pas à Droite',
+  'defense.WL': 'Charge Jambe Gauche',
+  'defense.WR': 'Charge Jambe Droite',
 };
 
 const de: Dict = {
@@ -811,10 +775,8 @@ const de: Dict = {
   'combo-slip-jab.name': 'Ausweichen & Jab',
   'combo-hook-uppercut-cross.name': 'Haken-Aufwärtshaken-Cross',
   'combo-body-head-mix.name': 'Körper-Kopf-Kombo',
-  'combo-duck-uppercut.name': 'Ducken, Konter-Aufwärtshaken',
-  'combo-pivot-escape.name': 'Pivot-Ausweich-Kombo',
+  'combo-step-back-escape.name': 'Schritt-Zurück-Ausweich-Kombo',
   'combo-five-punch.name': 'Fünf-Schlag-Kombo',
-  'combo-weave-counter.name': 'Ausweichen & Kontern',
 
   'punch.LHJ': 'Linker Jab zum Kopf',
   'punch.LBJ': 'Linker Jab zum Körper',
@@ -835,19 +797,9 @@ const de: Dict = {
 
   'defense.SL': 'Ausweichen Links',
   'defense.SR': 'Ausweichen Rechts',
-  'defense.DK': 'Ducken',
-  'defense.WL': 'Rollen Links',
-  'defense.WR': 'Rollen Rechts',
-  'defense.PL': 'Parade Links',
-  'defense.PR': 'Parade Rechts',
-  'defense.BL': 'Blocken',
-  'defense.CU': 'Abdecken',
-  'defense.PVL': 'Pivot Links',
-  'defense.PVR': 'Pivot Rechts',
   'defense.SB': 'Schritt Zurück',
-  'defense.SI': 'Schritt Vor',
-  'defense.STL': 'Schritt Links',
-  'defense.STR': 'Schritt Rechts',
+  'defense.WL': 'Linkes Bein Laden',
+  'defense.WR': 'Rechtes Bein Laden',
 };
 
 const ru: Dict = {
@@ -1020,10 +972,8 @@ const ru: Dict = {
   'combo-slip-jab.name': 'Уклон и джеб',
   'combo-hook-uppercut-cross.name': 'Хук-апперкот-кросс',
   'combo-body-head-mix.name': 'Комбинация корпус-голова',
-  'combo-duck-uppercut.name': 'Нырок, контр-апперкот',
-  'combo-pivot-escape.name': 'Комбинация с разворотом',
+  'combo-step-back-escape.name': 'Комбинация с шагом назад',
   'combo-five-punch.name': 'Комбинация из пяти ударов',
-  'combo-weave-counter.name': 'Уклон в сторону и контратака',
 
   'punch.LHJ': 'Левый джеб в голову',
   'punch.LBJ': 'Левый джеб в корпус',
@@ -1044,19 +994,9 @@ const ru: Dict = {
 
   'defense.SL': 'Уклон влево',
   'defense.SR': 'Уклон вправо',
-  'defense.DK': 'Нырок',
-  'defense.WL': 'Уклон корпусом влево',
-  'defense.WR': 'Уклон корпусом вправо',
-  'defense.PL': 'Парирование влево',
-  'defense.PR': 'Парирование вправо',
-  'defense.BL': 'Блок',
-  'defense.CU': 'Глухая защита',
-  'defense.PVL': 'Разворот влево',
-  'defense.PVR': 'Разворот вправо',
   'defense.SB': 'Шаг назад',
-  'defense.SI': 'Шаг вперёд',
-  'defense.STL': 'Шаг влево',
-  'defense.STR': 'Шаг вправо',
+  'defense.WL': 'Загрузка левой ноги',
+  'defense.WR': 'Загрузка правой ноги',
 };
 
 export const translations: Record<Locale, Dict> = { en, es, fr, de, ru };

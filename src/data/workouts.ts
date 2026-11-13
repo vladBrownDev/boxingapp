@@ -36,7 +36,7 @@ export const WORKOUTS: Workout[] = [
     rounds: 10,
     workSeconds: 120,
     restSeconds: 60,
-    comboIds: ['combo-slip-counter', 'combo-slip-jab', 'combo-duck-uppercut', 'combo-weave-counter'],
+    comboIds: ['combo-slip-counter', 'combo-slip-jab', 'combo-step-back-escape'],
   },
   {
     id: 'workout-full-combo-grind',
@@ -44,7 +44,7 @@ export const WORKOUTS: Workout[] = [
     rounds: 12,
     workSeconds: 120,
     restSeconds: 60,
-    comboIds: ['combo-five-punch', 'combo-pivot-escape', 'combo-weave-counter', 'combo-duck-uppercut'],
+    comboIds: ['combo-five-punch', 'combo-step-back-escape', 'combo-slip-jab'],
   },
 ];
 

@@ -78,20 +78,12 @@ export function getPunchVariants(
 
 export type DefenseCode =
   | 'SL' | 'SR'   // Slip Left / Slip Right
-  | 'DK'          // Duck
-  | 'WL' | 'WR'   // Weave Left / Weave Right (roll under, moving side to side)
-  | 'PL' | 'PR'   // Parry Left / Parry Right
-  | 'BL'          // Block (guard up)
-  | 'CU'          // Cover Up
-  | 'PVL' | 'PVR' // Pivot Left / Pivot Right
-  | 'SB' | 'SI'   // Step Back / Step In
-  | 'STL' | 'STR'; // Step Left / Step Right (lateral footwork, not a slip)
+  | 'SB'          // Step Back
+  | 'WL' | 'WR';  // Load Left / Load Right (step onto that leg, shifting body weight over it)
 
 export type MoveCode = PunchCode | DefenseCode;
 
-const DEFENSE_CODES: DefenseCode[] = [
-  'SL', 'SR', 'DK', 'WL', 'WR', 'PL', 'PR', 'BL', 'CU', 'PVL', 'PVR', 'SB', 'SI', 'STL', 'STR',
-];
+const DEFENSE_CODES: DefenseCode[] = ['SL', 'SR', 'SB', 'WL', 'WR'];
 
 function isDefenseCode(code: string): code is DefenseCode {
   return (DEFENSE_CODES as string[]).includes(code);

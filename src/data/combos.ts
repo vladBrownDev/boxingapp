@@ -52,24 +52,14 @@ export const COMBOS: Combo[] = [
     sequence: ['LBJ', 'RBC', 'LHH', 'RHC'],
   },
   {
-    id: 'combo-duck-uppercut',
+    id: 'combo-step-back-escape',
     level: 'Advanced',
-    sequence: ['DK', 'RHU'],
-  },
-  {
-    id: 'combo-pivot-escape',
-    level: 'Advanced',
-    sequence: ['LHJ', 'RHC', 'LHH', 'PVR'],
+    sequence: ['LHJ', 'RHC', 'LHH', 'SB'],
   },
   {
     id: 'combo-five-punch',
     level: 'Advanced',
     sequence: ['LHJ', 'RHC', 'LHH', 'LBH', 'RHU'],
-  },
-  {
-    id: 'combo-weave-counter',
-    level: 'Advanced',
-    sequence: ['WL', 'LHH', 'RHC'],
   },
 ];
 
