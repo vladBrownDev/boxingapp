@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, ImageSourcePropType, StyleSheet } from 'react-native';
-import { PunchCode, PunchDefinition } from '../data/punchNotation';
+import { PunchCode, punchCodeForStance, PunchDefinition } from '../data/punchNotation';
+import { useStance } from '../stance/StanceContext';
 
 /**
  * Drawn reference art for each punch (src/media/punches/, square 384px,
@@ -26,15 +27,26 @@ const PUNCH_IMAGES: Record<PunchCode, ImageSourcePropType> = {
 };
 
 interface Props {
+  /** The punch as the user throws it in their own stance (e.g. RHJ is a southpaw's jab). */
   punch: PunchDefinition;
   size?: number;
 }
 
+/** The art is drawn for an orthodox boxer. For a southpaw, the same punch is the orthodox
+ * one with hands swapped, so we show that drawing flipped horizontally: a southpaw's
+ * Right Head Jab is the orthodox Left Head Jab, mirrored. */
 export default function PunchIllustration({ punch, size = 64 }: Props) {
+  const { stance } = useStance();
+  const isMirrored = stance === 'southpaw';
+  const artCode = punchCodeForStance(punch.code, stance);
   return (
     <Image
-      source={PUNCH_IMAGES[punch.code]}
-      style={[styles.image, { width: size, height: size, borderRadius: size * 0.14 }]}
+      source={PUNCH_IMAGES[artCode]}
+      style={[
+        styles.image,
+        { width: size, height: size, borderRadius: size * 0.14 },
+        isMirrored && styles.mirrored,
+      ]}
       resizeMode="cover"
     />
   );
@@ -43,5 +55,8 @@ export default function PunchIllustration({ punch, size = 64 }: Props) {
 const styles = StyleSheet.create({
   image: {
     backgroundColor: '#1C1C24',
+  },
+  mirrored: {
+    transform: [{ scaleX: -1 }],
   },
 });
