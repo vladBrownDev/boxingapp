@@ -13,7 +13,7 @@ import { usePreventRemove } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ComboBuilder, { ComboDraft } from '../components/ComboBuilder';
 import { ComboLevel, getComboName } from '../data/combos';
-import { describeMove } from '../data/punchNotation';
+import { describeMove, stepForStance } from '../data/punchNotation';
 import {
   ComboSegment,
   countRounds,
@@ -28,6 +28,7 @@ import {
 import { useTranslation } from '../i18n/LanguageContext';
 import { TranslationKey } from '../i18n/translations';
 import { RootStackParamList } from '../navigation/types';
+import { useStance } from '../stance/StanceContext';
 import { deleteCustomWorkout, newCustomWorkoutId, saveCustomWorkout } from '../storage/customWorkouts';
 import { colors, radius, type } from '../theme';
 
@@ -77,6 +78,7 @@ export default function WorkoutEditorScreen({ navigation, route }: Props) {
   const original = route.params?.workout;
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { stance } = useStance();
 
   const [name, setName] = useState(original?.name ?? '');
   const [level, setLevel] = useState<ComboLevel>(original?.level ?? 'Beginner');
@@ -337,7 +339,7 @@ export default function WorkoutEditorScreen({ navigation, route }: Props) {
                           </Text>
                           {segmentCombo && (
                             <Text style={styles.segmentMeta} numberOfLines={1}>
-                              {segmentCombo.sequence.map(step => describeMove(t, step)).join(' · ')}
+                              {segmentCombo.sequence.map(step => describeMove(t, stepForStance(step, stance))).join(' · ')}
                             </Text>
                           )}
                         </TouchableOpacity>

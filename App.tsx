@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import DashboardScreen from './src/screens/DashboardScreen';
 import MenuScreen from './src/screens/MenuScreen';
 import SplashScreen from './src/screens/SplashScreen';
+import StanceScreen from './src/screens/StanceScreen';
 import StatsScreen from './src/screens/StatsScreen';
 import TrainingScheduleScreen from './src/screens/TrainingScheduleScreen';
 import WelcomeScreen from './src/screens/WelcomeScreen';
@@ -15,6 +16,7 @@ import WorkoutPlayerScreen from './src/screens/WorkoutPlayerScreen';
 import WorkoutSetupScreen from './src/screens/WorkoutSetupScreen';
 import { LanguageProvider } from './src/i18n/LanguageContext';
 import NotificationSync from './src/notifications/NotificationSync';
+import { StanceProvider } from './src/stance/StanceContext';
 import { RootStackParamList } from './src/navigation/types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -23,6 +25,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <LanguageProvider>
+        <StanceProvider>
         <NotificationSync />
         <StatusBar barStyle="light-content" backgroundColor="#141416" />
         <NavigationContainer>
@@ -30,6 +33,7 @@ export default function App() {
             initialRouteName="Splash"
             screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Splash" component={SplashScreen} />
+            <Stack.Screen name="Stance" component={StanceScreen} />
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="TrainingSchedule" component={TrainingScheduleScreen} />
             <Stack.Screen name="Dashboard" component={DashboardScreen} />
@@ -41,6 +45,7 @@ export default function App() {
             <Stack.Screen name="WorkoutPlayer" component={WorkoutPlayerScreen} />
           </Stack.Navigator>
         </NavigationContainer>
+        </StanceProvider>
       </LanguageProvider>
     </SafeAreaProvider>
   );

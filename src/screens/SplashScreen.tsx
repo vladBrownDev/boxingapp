@@ -12,6 +12,7 @@ import { useTranslation } from '../i18n/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { loadAuthState } from '../storage/authStorage';
 import { loadTrainingDays } from '../storage/trainingSchedule';
+import { loadStance } from '../stance/StanceContext';
 
 const { width } = Dimensions.get('window');
 
@@ -51,11 +52,20 @@ export default function SplashScreen({ navigation }: Props) {
       }),
     ]).start(() => {
       setTimeout(async () => {
-        const [authState, trainingDays] = await Promise.all([loadAuthState(), loadTrainingDays()]);
+        const [authState, trainingDays, stance] = await Promise.all([
+          loadAuthState(),
+          loadTrainingDays(),
+          loadStance(),
+        ]);
         // Logged-in users who never picked training days (e.g. installs from before the
         // schedule existed) get the onboarding step once.
         const next = !authState.isLoggedIn ? 'Welcome' : trainingDays ? 'Dashboard' : 'TrainingSchedule';
-        navigation.reset({ index: 0, routes: [{ name: next }] });
+        // Stance is asked once, before anything else (existing installs get it on next launch).
+        if (stance) {
+          navigation.reset({ index: 0, routes: [{ name: next }] });
+        } else {
+          navigation.reset({ index: 0, routes: [{ name: 'Stance', params: { next } }] });
+        }
       }, 200);
     });
   }, [navigation]);

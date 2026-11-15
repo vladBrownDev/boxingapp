@@ -11,7 +11,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BottomNav, { NavTab } from '../components/BottomNav';
 import HeartIcon from '../components/HeartIcon';
 import WeekStrip from '../components/WeekStrip';
-import { getPunchLabel } from '../data/punchNotation';
+import { getPunchLabel, punchCodeForStance } from '../data/punchNotation';
+import { useStance } from '../stance/StanceContext';
 import { countRounds, getSuggestedWorkout, getWorkoutDurationMinutes, getWorkoutName, WORKOUTS } from '../data/workouts';
 import { useCustomWorkouts } from '../hooks/useCustomWorkouts';
 import { useFavorites } from '../hooks/useFavorites';
@@ -39,6 +40,7 @@ export default function DashboardScreen({ navigation }: Props) {
   const { sessions, trainingDays, allTimeStats, punchBreakdown } = useWorkoutStats();
   const { favoriteIds, toggleFavorite } = useFavorites();
   const customWorkouts = useCustomWorkouts();
+  const { stance } = useStance();
 
   const suggested = useMemo(() => getSuggestedWorkout(punchBreakdown), [punchBreakdown]);
 
@@ -125,7 +127,7 @@ export default function DashboardScreen({ navigation }: Props) {
               {suggested.focusPunchCodes.length > 0 && (
                 <Text style={styles.suggestedFocus}>
                   {t('dashboard.suggestedFocus', {
-                    punches: suggested.focusPunchCodes.map(code => getPunchLabel(t, code)).join(', '),
+                    punches: suggested.focusPunchCodes.map(code => getPunchLabel(t, punchCodeForStance(code, stance))).join(', '),
                   })}
                 </Text>
               )}

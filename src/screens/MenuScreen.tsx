@@ -15,6 +15,7 @@ import BottomNav, { NavTab } from '../components/BottomNav';
 import WeekdayPicker from '../components/WeekdayPicker';
 import { useTranslation } from '../i18n/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
+import { useStance } from '../stance/StanceContext';
 import {
   openSystemNotificationSettings,
   requestNotificationPermission,
@@ -46,6 +47,8 @@ export default function MenuScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<NavTab>('menu');
   const { t, locale, setLocale, languages } = useTranslation();
+  const { stance, setStance } = useStance();
+  const isSouthpaw = stance === 'southpaw';
   const currentLanguage = languages.find(l => l.code === locale) ?? languages[0];
   const [pickerVisible, setPickerVisible] = useState(false);
   const [notifSettings, setNotifSettings] = useState<NotificationSettings>(
@@ -147,6 +150,20 @@ export default function MenuScreen({ navigation }: Props) {
           <WeekdayPicker selected={trainingDays} onChange={updateTrainingDays} />
         </View>
         <Text style={styles.hint}>{t('menu.trainingDaysHint')}</Text>
+
+        <View style={[styles.group, styles.stanceGroup]}>
+          <View style={styles.groupRow}>
+            <Text style={styles.rowLabel}>{t('menu.southpaw')}</Text>
+            <Switch
+              value={isSouthpaw}
+              onValueChange={value => setStance(value ? 'southpaw' : 'orthodox')}
+              trackColor={{ false: colors.raised, true: colors.inverse }}
+              thumbColor={isSouthpaw ? colors.ground : colors.faint}
+              ios_backgroundColor={colors.raised}
+            />
+          </View>
+        </View>
+        <Text style={styles.hint}>{t('menu.southpawHint')}</Text>
 
         <Text style={[styles.sectionLabel, styles.sectionSpacing]}>{t('menu.notifications')}</Text>
         <View style={styles.group}>
@@ -384,6 +401,9 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-45deg' }],
   },
 
+  stanceGroup: {
+    marginTop: 16,
+  },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',

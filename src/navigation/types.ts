@@ -4,6 +4,8 @@ import { WorkoutRunConfig } from '../screens/WorkoutSetupScreen';
 export type RootStackParamList = {
   Splash: undefined;
   Welcome: undefined;
+  /** First-run stance question; continues to `next` afterwards. */
+  Stance: { next: 'Welcome' | 'TrainingSchedule' | 'Dashboard' };
   TrainingSchedule: undefined;
   Dashboard: undefined;
   Stats: undefined;

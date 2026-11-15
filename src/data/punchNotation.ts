@@ -119,3 +119,35 @@ export function getStepPunch(step: string): PunchDefinition | undefined {
   }
   return undefined;
 }
+
+/**
+ * Stance. Combos are always stored in orthodox notation (left hand / left foot forward).
+ * For a southpaw they're mirrored at display time, so the "jab" is always the lead hand:
+ * L↔R on every punch, and slips / weight shifts swap sides (Step Back stays as is).
+ */
+export type Stance = 'orthodox' | 'southpaw';
+
+const MIRRORED_DEFENSE: Record<DefenseCode, DefenseCode> = {
+  SL: 'SR',
+  SR: 'SL',
+  SB: 'SB',
+  WL: 'WR',
+  WR: 'WL',
+};
+
+function mirrorCode(code: string): string {
+  if (code in PUNCH_BY_CODE) {
+    return `${code[0] === 'L' ? 'R' : 'L'}${code.slice(1)}`;
+  }
+  return isDefenseCode(code) ? MIRRORED_DEFENSE[code] : code;
+}
+
+/** Converts a (possibly "+"-joined) step between orthodox notation and the given stance.
+ * Mirroring is its own inverse, so this works in both directions. */
+export function stepForStance(step: string, stance: Stance): string {
+  return stance === 'orthodox' ? step : step.split('+').map(mirrorCode).join('+');
+}
+
+export function punchCodeForStance(code: PunchCode, stance: Stance): PunchCode {
+  return stepForStance(code, stance) as PunchCode;
+}

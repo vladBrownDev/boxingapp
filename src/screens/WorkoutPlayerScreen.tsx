@@ -7,7 +7,8 @@ import { playBell } from '../audio/bell';
 import NotificationPrompt from '../components/NotificationPrompt';
 import PunchIllustration from '../components/PunchIllustration';
 import { ComboInfo, getComboName } from '../data/combos';
-import { describeMove, getStepPunch } from '../data/punchNotation';
+import { describeMove, getStepPunch, stepForStance } from '../data/punchNotation';
+import { useStance } from '../stance/StanceContext';
 import { pickRandomTip } from '../data/tips';
 import {
   countRounds,
@@ -107,6 +108,7 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
   const { segments } = config;
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { stance } = useStance();
   const totalRounds = useMemo(() => countRounds(segments), [segments]);
 
   const [state, setState] = useState<PlayerState>({
@@ -282,7 +284,7 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
           </Text>
           <Text style={styles.comboName}>{getComboName(t, activeCombo)}</Text>
           <View style={styles.chipsRow}>
-            {activeCombo.sequence.map((step, index) => {
+            {activeCombo.sequence.map(orthodoxStep => stepForStance(orthodoxStep, stance)).map((step, index) => {
               const punch = getStepPunch(step);
               return (
                 <View key={`${step}-${index}`} style={styles.chip}>

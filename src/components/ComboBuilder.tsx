@@ -18,8 +18,10 @@ import {
   PunchSide,
   PunchTarget,
   PunchType,
+  stepForStance,
 } from '../data/punchNotation';
 import { useTranslation } from '../i18n/LanguageContext';
+import { useStance } from '../stance/StanceContext';
 import { colors, radius, type } from '../theme';
 import PunchIllustration from './PunchIllustration';
 
@@ -56,6 +58,9 @@ function canJoin(step: string, code: MoveCode): boolean {
 export default function ComboBuilder({ draft, isEditing, onSave, onCancel }: Props) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  // The builder shows moves for the user's stance but stores them in orthodox notation,
+  // like every other combo, so a combo built as a southpaw mirrors correctly if they switch.
+  const { stance } = useStance();
   const [name, setName] = useState('');
   const [sequence, setSequence] = useState<string[]>([]);
   const [target, setTarget] = useState<PunchTarget>('head');
@@ -75,7 +80,8 @@ export default function ComboBuilder({ draft, isEditing, onSave, onCancel }: Pro
   const isFull = sequence.length >= MAX_STEPS;
   const canSave = sequence.length > 0 && name.trim().length > 0;
 
-  const addMove = (code: MoveCode) => {
+  const addMove = (displayCode: MoveCode) => {
+    const code = stepForStance(displayCode, stance) as MoveCode;
     if (joinWithLast && lastStep !== undefined) {
       if (canJoin(lastStep, code)) {
         setSequence(prev => [...prev.slice(0, -1), `${lastStep}+${code}`]);
@@ -88,8 +94,10 @@ export default function ComboBuilder({ draft, isEditing, onSave, onCancel }: Pro
     }
   };
 
-  const isMoveDisabled = (code: MoveCode) =>
-    joinWithLast && lastStep !== undefined ? !canJoin(lastStep, code) : isFull;
+  const isMoveDisabled = (displayCode: MoveCode) => {
+    const code = stepForStance(displayCode, stance) as MoveCode;
+    return joinWithLast && lastStep !== undefined ? !canJoin(lastStep, code) : isFull;
+  };
 
   const removeStep = (index: number) => {
     setSequence(prev => prev.filter((_, i) => i !== index));
@@ -137,7 +145,7 @@ export default function ComboBuilder({ draft, isEditing, onSave, onCancel }: Pro
                   {sequence.map((step, index) => (
                     <View key={`${step}-${index}`} style={styles.stepChip}>
                       <Text style={styles.stepIndex}>{index + 1}</Text>
-                      <Text style={styles.stepLabel}>{describeMove(t, step)}</Text>
+                      <Text style={styles.stepLabel}>{describeMove(t, stepForStance(step, stance))}</Text>
                       <TouchableOpacity
                         hitSlop={{ top: 10, bottom: 10, left: 6, right: 10 }}
                         accessibilityLabel={t('builder.removeMove')}

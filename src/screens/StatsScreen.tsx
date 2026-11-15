@@ -3,7 +3,8 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BottomNav, { NavTab } from '../components/BottomNav';
-import { getPunchLabel } from '../data/punchNotation';
+import { getPunchLabel, punchCodeForStance } from '../data/punchNotation';
+import { useStance } from '../stance/StanceContext';
 import { getWorkoutById, getWorkoutName } from '../data/workouts';
 import { useWorkoutStats } from '../hooks/useWorkoutStats';
 import { useTranslation } from '../i18n/LanguageContext';
@@ -32,6 +33,7 @@ export default function StatsScreen({ navigation }: Props) {
   const [activeTab, setActiveTab] = useState<NavTab>('progress');
   const [period, setPeriod] = useState<StatsPeriod>('week');
   const { t } = useTranslation();
+  const { stance } = useStance();
   const { sessions, allTimeStats } = useWorkoutStats();
 
   const periodSessions = useMemo(
@@ -166,7 +168,7 @@ export default function StatsScreen({ navigation }: Props) {
               {punchBreakdown.map((entry, index) => (
                 <View key={entry.code} style={[styles.punchRow, index > 0 && styles.listRowRule]}>
                   <View style={styles.punchLine}>
-                    <Text style={styles.punchName}>{getPunchLabel(t, entry.code)}</Text>
+                    <Text style={styles.punchName}>{getPunchLabel(t, punchCodeForStance(entry.code, stance))}</Text>
                     <Text style={entry.roundsUsed === 0 ? styles.punchZero : styles.rowFigure}>
                       {entry.roundsUsed}
                     </Text>

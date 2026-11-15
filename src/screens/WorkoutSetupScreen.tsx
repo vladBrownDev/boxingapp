@@ -3,7 +3,8 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { getComboName } from '../data/combos';
-import { describeMove } from '../data/punchNotation';
+import { describeMove, stepForStance } from '../data/punchNotation';
+import { useStance } from '../stance/StanceContext';
 import {
   countRounds,
   getSegmentsTotalSeconds,
@@ -54,6 +55,7 @@ export default function WorkoutSetupScreen({ navigation, route }: Props) {
   const { workout } = route.params;
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { stance } = useStance();
   const [workDelta, setWorkDelta] = useState(0);
   const [restDelta, setRestDelta] = useState(0);
   const combos = getWorkoutCombos(workout);
@@ -158,7 +160,7 @@ export default function WorkoutSetupScreen({ navigation, route }: Props) {
             <View key={combo.id} style={styles.comboCard}>
               <Text style={styles.comboName}>{getComboName(t, combo)}</Text>
               <Text style={styles.comboSequence}>
-                {combo.sequence.map(step => describeMove(t, step)).join('  ·  ')}
+                {combo.sequence.map(step => describeMove(t, stepForStance(step, stance))).join('  ·  ')}
               </Text>
             </View>
           ))}
