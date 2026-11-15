@@ -1,17 +1,23 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { getComboName } from '../data/combos';
 import { describeMove } from '../data/punchNotation';
-import { getWorkoutCombos, getWorkoutName } from '../data/workouts';
+import {
+  countRounds,
+  getSegmentsTotalSeconds,
+  getWorkoutCombos,
+  getWorkoutName,
+  WorkoutSegment,
+} from '../data/workouts';
 import { useTranslation } from '../i18n/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { colors, radius, type } from '../theme';
 
 export interface WorkoutRunConfig {
-  workSeconds: number;
-  restSeconds: number;
+  /** The workout's segments with the user's duration adjustments applied. */
+  segments: WorkoutSegment[];
 }
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutSetup'>;
@@ -34,15 +40,51 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+/** Shifts every combo / rest segment by the stepper offsets, so workouts whose segments
+ * have different lengths keep their shape while getting longer or shorter overall. */
+function adjustSegments(
+  segments: WorkoutSegment[],
+  workDelta: number,
+  restDelta: number,
+): WorkoutSegment[] {
+  return segments.map(segment =>
+    segment.type === 'combo'
+      ? { ...segment, seconds: clamp(segment.seconds + workDelta, WORK_MIN, WORK_MAX) }
+      : { ...segment, seconds: clamp(segment.seconds + restDelta, REST_MIN, REST_MAX) },
+  );
+}
+
 export default function WorkoutSetupScreen({ navigation, route }: Props) {
   const { workout } = route.params;
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const [workSeconds, setWorkSeconds] = useState(workout.workSeconds);
-  const [restSeconds, setRestSeconds] = useState(workout.restSeconds);
+  const [workDelta, setWorkDelta] = useState(0);
+  const [restDelta, setRestDelta] = useState(0);
   const combos = getWorkoutCombos(workout);
 
-  const totalSeconds = workout.rounds * workSeconds + (workout.rounds - 1) * restSeconds;
+  const segments = useMemo(
+    () => adjustSegments(workout.segments, workDelta, restDelta),
+    [workout.segments, workDelta, restDelta],
+  );
+  // The steppers show (and step) the first segment of each type; the same offset is
+  // applied to every other segment of that type.
+  const firstWork = workout.segments.find(s => s.type === 'combo');
+  const firstRest = workout.segments.find(s => s.type === 'rest');
+  const stepWork = (dir: 1 | -1) => {
+    if (firstWork) {
+      setWorkDelta(d => clamp(firstWork.seconds + d + dir * WORK_STEP, WORK_MIN, WORK_MAX) - firstWork.seconds);
+    }
+  };
+  const stepRest = (dir: 1 | -1) => {
+    if (firstRest) {
+      setRestDelta(d => clamp(firstRest.seconds + d + dir * REST_STEP, REST_MIN, REST_MAX) - firstRest.seconds);
+    }
+  };
+  const workSeconds = segments.find(s => s.type === 'combo')?.seconds ?? 0;
+  const restSeconds = segments.find(s => s.type === 'rest')?.seconds ?? 0;
+
+  const rounds = countRounds(segments);
+  const totalSeconds = getSegmentsTotalSeconds(segments);
 
   return (
     <View style={styles.container}>
@@ -61,7 +103,7 @@ export default function WorkoutSetupScreen({ navigation, route }: Props) {
 
         <View style={styles.summaryRow}>
           <Text style={styles.summaryText}>
-            {t('workoutSetup.summary', { rounds: workout.rounds, duration: formatDuration(totalSeconds) })}
+            {t('workoutSetup.summary', { rounds, duration: formatDuration(totalSeconds) })}
           </Text>
         </View>
 
@@ -71,37 +113,39 @@ export default function WorkoutSetupScreen({ navigation, route }: Props) {
             <TouchableOpacity
               style={styles.stepperBtn}
               activeOpacity={0.7}
-              onPress={() => setWorkSeconds(v => clamp(v - WORK_STEP, WORK_MIN, WORK_MAX))}>
+              onPress={() => stepWork(-1)}>
               <Text style={styles.stepperBtnText}>−</Text>
             </TouchableOpacity>
             <Text style={styles.stepperValue}>{formatDuration(workSeconds)}</Text>
             <TouchableOpacity
               style={styles.stepperBtn}
               activeOpacity={0.7}
-              onPress={() => setWorkSeconds(v => clamp(v + WORK_STEP, WORK_MIN, WORK_MAX))}>
+              onPress={() => stepWork(1)}>
               <Text style={styles.stepperBtnText}>+</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('workoutSetup.restDuration')}</Text>
-          <View style={styles.stepperRow}>
-            <TouchableOpacity
-              style={styles.stepperBtn}
-              activeOpacity={0.7}
-              onPress={() => setRestSeconds(v => clamp(v - REST_STEP, REST_MIN, REST_MAX))}>
-              <Text style={styles.stepperBtnText}>−</Text>
-            </TouchableOpacity>
-            <Text style={styles.stepperValue}>{formatDuration(restSeconds)}</Text>
-            <TouchableOpacity
-              style={styles.stepperBtn}
-              activeOpacity={0.7}
-              onPress={() => setRestSeconds(v => clamp(v + REST_STEP, REST_MIN, REST_MAX))}>
-              <Text style={styles.stepperBtnText}>+</Text>
-            </TouchableOpacity>
+        {firstRest && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('workoutSetup.restDuration')}</Text>
+            <View style={styles.stepperRow}>
+              <TouchableOpacity
+                style={styles.stepperBtn}
+                activeOpacity={0.7}
+                onPress={() => stepRest(-1)}>
+                <Text style={styles.stepperBtnText}>−</Text>
+              </TouchableOpacity>
+              <Text style={styles.stepperValue}>{formatDuration(restSeconds)}</Text>
+              <TouchableOpacity
+                style={styles.stepperBtn}
+                activeOpacity={0.7}
+                onPress={() => stepRest(1)}>
+                <Text style={styles.stepperBtnText}>+</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('workoutSetup.combosTitle')}</Text>
@@ -125,7 +169,7 @@ export default function WorkoutSetupScreen({ navigation, route }: Props) {
           onPress={() =>
             navigation.navigate('WorkoutPlayer', {
               workout,
-              config: { workSeconds, restSeconds },
+              config: { segments },
             })
           }>
           <Text style={styles.startButtonText}>{t('workoutSetup.startWorkout')}</Text>

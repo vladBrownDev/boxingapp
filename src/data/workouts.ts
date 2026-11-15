@@ -3,48 +3,61 @@ import { TranslationKey } from '../i18n/translations';
 import { Combo, ComboLevel, getComboById } from './combos';
 import { PUNCH_BY_CODE, PunchCode } from './punchNotation';
 
+/** One timed block of a workout: either throwing a combo, or resting. Segments run in
+ * order, so two combo segments can follow each other with no rest in between. */
+export type WorkoutSegment =
+  | { type: 'combo'; comboId: string; seconds: number }
+  | { type: 'rest'; seconds: number };
+
 export interface Workout {
   id: string;
   level: ComboLevel;
-  rounds: number;
-  workSeconds: number;
-  restSeconds: number;
-  /** Combo ids, cycled through across rounds. */
-  comboIds: string[];
+  segments: WorkoutSegment[];
+}
+
+export const DEFAULT_COMBO_SECONDS = 120;
+export const DEFAULT_REST_SECONDS = 60;
+
+export function combo(comboId: string, seconds = DEFAULT_COMBO_SECONDS): WorkoutSegment {
+  return { type: 'combo', comboId, seconds };
+}
+
+export function rest(seconds = DEFAULT_REST_SECONDS): WorkoutSegment {
+  return { type: 'rest', seconds };
+}
+
+/** Classic layout: `rounds` combo segments cycling through `comboIds`, a rest between each. */
+function roundsWithRest(rounds: number, comboIds: string[]): WorkoutSegment[] {
+  const segments: WorkoutSegment[] = [];
+  for (let i = 0; i < rounds; i++) {
+    if (i > 0) {
+      segments.push(rest());
+    }
+    segments.push(combo(comboIds[i % comboIds.length]));
+  }
+  return segments;
 }
 
 export const WORKOUTS: Workout[] = [
   {
     id: 'workout-beginner-basics',
     level: 'Beginner',
-    rounds: 6,
-    workSeconds: 120,
-    restSeconds: 60,
-    comboIds: ['combo-1-2', 'combo-1-2-3', 'combo-double-jab-cross', 'combo-body-1-2'],
+    segments: roundsWithRest(6, ['combo-1-2', 'combo-1-2-3', 'combo-double-jab-cross', 'combo-body-1-2']),
   },
   {
     id: 'workout-body-shot-focus',
     level: 'Intermediate',
-    rounds: 8,
-    workSeconds: 120,
-    restSeconds: 60,
-    comboIds: ['combo-body-1-2', 'combo-body-head-mix', 'combo-hook-uppercut-cross'],
+    segments: roundsWithRest(8, ['combo-body-1-2', 'combo-body-head-mix', 'combo-hook-uppercut-cross']),
   },
   {
     id: 'workout-defense-and-counter',
     level: 'Advanced',
-    rounds: 10,
-    workSeconds: 120,
-    restSeconds: 60,
-    comboIds: ['combo-slip-counter', 'combo-slip-jab', 'combo-step-back-escape'],
+    segments: roundsWithRest(10, ['combo-slip-counter', 'combo-slip-jab', 'combo-step-back-escape']),
   },
   {
     id: 'workout-full-combo-grind',
     level: 'Advanced',
-    rounds: 12,
-    workSeconds: 120,
-    restSeconds: 60,
-    comboIds: ['combo-five-punch', 'combo-step-back-escape', 'combo-slip-jab'],
+    segments: roundsWithRest(12, ['combo-five-punch', 'combo-step-back-escape', 'combo-slip-jab']),
   },
 ];
 
@@ -56,24 +69,37 @@ export function getWorkoutName(t: TFunction, workout: Workout): string {
   return t(`${workout.id}.name` as TranslationKey);
 }
 
-/** Resolves a workout's combo ids to their full Combo objects, in order. */
+/** Number of combo segments, i.e. what the UI calls "rounds". */
+export function countRounds(segments: WorkoutSegment[]): number {
+  return segments.filter(s => s.type === 'combo').length;
+}
+
+export function getSegmentsTotalSeconds(segments: WorkoutSegment[]): number {
+  return segments.reduce((sum, s) => sum + s.seconds, 0);
+}
+
+/** Distinct combos used by the workout, in order of first appearance. */
 export function getWorkoutCombos(workout: Workout): Combo[] {
-  return workout.comboIds
+  const ids = new Set<string>();
+  for (const segment of workout.segments) {
+    if (segment.type === 'combo') {
+      ids.add(segment.comboId);
+    }
+  }
+  return Array.from(ids)
     .map(getComboById)
-    .filter((combo): combo is Combo => combo !== undefined);
+    .filter((c): c is Combo => c !== undefined);
 }
 
 export function getWorkoutDurationMinutes(workout: Workout): number {
-  const totalSeconds =
-    workout.rounds * workout.workSeconds + (workout.rounds - 1) * workout.restSeconds;
-  return Math.round(totalSeconds / 60);
+  return Math.round(getSegmentsTotalSeconds(workout.segments) / 60);
 }
 
 /** Every distinct punch code thrown across a workout's combos. */
 function getWorkoutPunchCodes(workout: Workout): PunchCode[] {
   const codes = new Set<PunchCode>();
-  for (const combo of getWorkoutCombos(workout)) {
-    for (const step of combo.sequence) {
+  for (const workoutCombo of getWorkoutCombos(workout)) {
+    for (const step of workoutCombo.sequence) {
       for (const move of step.split('+')) {
         const punch = (PUNCH_BY_CODE as Record<string, { code: PunchCode } | undefined>)[move];
         if (punch) {

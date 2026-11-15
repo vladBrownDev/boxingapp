@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BottomNav, { NavTab } from '../components/BottomNav';
 import { getComboName } from '../data/combos';
-import { getWorkoutCombos, getWorkoutDurationMinutes, getWorkoutName, WORKOUTS } from '../data/workouts';
+import { countRounds, getWorkoutCombos, getWorkoutDurationMinutes, getWorkoutName, WORKOUTS } from '../data/workouts';
 import { useTranslation } from '../i18n/LanguageContext';
 import { TranslationKey } from '../i18n/translations';
 import { RootStackParamList } from '../navigation/types';
@@ -65,7 +65,7 @@ export default function WorkoutListScreen({ navigation }: Props) {
               </View>
               <Text style={styles.cardMeta}>
                 {t('workoutList.meta', {
-                  rounds: workout.rounds,
+                  rounds: countRounds(workout.segments),
                   minutes: getWorkoutDurationMinutes(workout),
                 })}
               </Text>

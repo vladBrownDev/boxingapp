@@ -12,7 +12,7 @@ import BottomNav, { NavTab } from '../components/BottomNav';
 import HeartIcon from '../components/HeartIcon';
 import WeekStrip from '../components/WeekStrip';
 import { getPunchLabel } from '../data/punchNotation';
-import { getSuggestedWorkout, getWorkoutDurationMinutes, getWorkoutName, WORKOUTS } from '../data/workouts';
+import { countRounds, getSuggestedWorkout, getWorkoutDurationMinutes, getWorkoutName, WORKOUTS } from '../data/workouts';
 import { useFavorites } from '../hooks/useFavorites';
 import { useWorkoutStats } from '../hooks/useWorkoutStats';
 import { useTranslation } from '../i18n/LanguageContext';
@@ -117,7 +117,7 @@ export default function DashboardScreen({ navigation }: Props) {
               <Text style={styles.suggestedMeta}>
                 {t('dashboard.suggestedMeta', {
                   minutes: getWorkoutDurationMinutes(suggested.workout),
-                  rounds: suggested.workout.rounds,
+                  rounds: countRounds(suggested.workout.segments),
                 })}
               </Text>
               {suggested.focusPunchCodes.length > 0 && (
@@ -160,7 +160,7 @@ export default function DashboardScreen({ navigation }: Props) {
                       {workout
                         ? t('dashboard.workoutMeta', {
                           minutes: getWorkoutDurationMinutes(workout),
-                          rounds: workout.rounds,
+                          rounds: countRounds(workout.segments),
                         })
                         : t(
                           session.roundsCompleted === 1

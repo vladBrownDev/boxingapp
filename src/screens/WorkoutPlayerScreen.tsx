@@ -6,10 +6,16 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { playBell } from '../audio/bell';
 import NotificationPrompt from '../components/NotificationPrompt';
 import PunchIllustration from '../components/PunchIllustration';
-import { Combo, getComboName } from '../data/combos';
+import { Combo, getComboById, getComboName } from '../data/combos';
 import { describeMove, getStepPunch } from '../data/punchNotation';
 import { pickRandomTip } from '../data/tips';
-import { getWorkoutCombos, getWorkoutName, Workout } from '../data/workouts';
+import {
+  countRounds,
+  getSegmentsTotalSeconds,
+  getWorkoutName,
+  Workout,
+  WorkoutSegment,
+} from '../data/workouts';
 import { TFunction, useTranslation } from '../i18n/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
 import { requestNotificationPermission, rescheduleNotifications } from '../notifications/reminders';
@@ -19,15 +25,16 @@ import { colors, radius } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutPlayer'>;
 
-type Phase = 'ready' | 'work' | 'rest' | 'done';
+/** 'ready' is the prep countdown, 'segment' is running `segments[segmentIndex]`. */
+type Phase = 'ready' | 'segment' | 'done';
 
 interface PlayerState {
   phase: Phase;
-  roundIndex: number;
+  segmentIndex: number;
   secondsLeft: number;
 }
 
-/** Countdown before round 1 so the user has time to put their gloves on. */
+/** Countdown before the first segment so the user has time to put their gloves on. */
 const PREP_SECONDS = 10;
 
 /** How much the "+15 sec" button extends the current rest. */
@@ -39,41 +46,39 @@ function formatTime(totalSeconds: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
+/** First combo segment at or after `fromIndex`. */
+function findNextCombo(segments: WorkoutSegment[], fromIndex: number): Combo | undefined {
+  for (let i = fromIndex; i < segments.length; i++) {
+    const segment = segments[i];
+    if (segment.type === 'combo') {
+      return getComboById(segment.comboId);
+    }
+  }
+  return undefined;
+}
+
 /** Builds the session record for whatever progress has been made so far, whether the
- * workout finished normally or the player exited mid-round. */
+ * workout finished normally or the player exited mid-segment. */
 function buildSession(
   t: TFunction,
   workout: Workout,
-  combos: Combo[],
-  workSeconds: number,
-  restSeconds: number,
+  segments: WorkoutSegment[],
   state: PlayerState,
 ): WorkoutSession {
-  const roundsCompleted =
-    state.phase === 'done'
-      ? workout.rounds
-      : state.phase === 'ready'
-        ? 0
-        : state.phase === 'work'
-          ? state.roundIndex
-          : state.roundIndex + 1;
+  const finishedCount =
+    state.phase === 'done' ? segments.length : state.phase === 'ready' ? 0 : state.segmentIndex;
+  const finished = segments.slice(0, finishedCount);
 
-  let activeDuration = state.roundIndex * (workSeconds + restSeconds);
-  if (state.phase === 'work') {
-    activeDuration += workSeconds - state.secondsLeft;
-  } else if (state.phase === 'rest') {
-    // Clamped: rest extended via the "+15 sec" button can leave more than restSeconds on the clock.
-    activeDuration += workSeconds + Math.max(0, restSeconds - state.secondsLeft);
-  } else if (state.phase === 'done') {
-    activeDuration = workout.rounds * workSeconds + (workout.rounds - 1) * restSeconds;
-  } else {
-    activeDuration = 0;
+  let activeDuration = getSegmentsTotalSeconds(finished);
+  const current = state.phase === 'segment' ? segments[state.segmentIndex] : undefined;
+  if (current) {
+    // Clamped: rest extended via the "+15 sec" button can leave more than its length on the clock.
+    activeDuration += Math.max(0, current.seconds - state.secondsLeft);
   }
 
-  const comboIds = Array.from(
-    { length: roundsCompleted },
-    (_, i) => combos[i % combos.length].id,
-  );
+  const comboIds = finished.flatMap(s => (s.type === 'combo' ? [s.comboId] : []));
+  const firstWork = segments.find(s => s.type === 'combo');
+  const firstRest = segments.find(s => s.type === 'rest');
 
   return {
     id: String(Date.now()),
@@ -81,11 +86,11 @@ function buildSession(
     workoutId: workout.id,
     workoutName: getWorkoutName(t, workout),
     level: workout.level,
-    rounds: workout.rounds,
-    roundsCompleted,
-    workTime: workSeconds,
-    restTime: restSeconds,
-    totalDuration: workout.rounds * workSeconds + (workout.rounds - 1) * restSeconds,
+    rounds: countRounds(segments),
+    roundsCompleted: comboIds.length,
+    workTime: firstWork?.seconds ?? 0,
+    restTime: firstRest?.seconds ?? 0,
+    totalDuration: getSegmentsTotalSeconds(segments),
     activeDuration,
     comboIds,
     completed: state.phase === 'done',
@@ -94,14 +99,14 @@ function buildSession(
 
 export default function WorkoutPlayerScreen({ navigation, route }: Props) {
   const { workout, config } = route.params;
+  const { segments } = config;
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const combos = useMemo(() => getWorkoutCombos(workout), [workout]);
-  const { workSeconds, restSeconds } = config;
+  const totalRounds = useMemo(() => countRounds(segments), [segments]);
 
   const [state, setState] = useState<PlayerState>({
     phase: 'ready',
-    roundIndex: 0,
+    segmentIndex: 0,
     secondsLeft: PREP_SECONDS,
   });
   const [isPaused, setIsPaused] = useState(false);
@@ -109,17 +114,21 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
   const [tipKey, setTipKey] = useState(() => pickRandomTip());
   const hasLoggedRef = useRef(false);
 
+  const currentSegment = state.phase === 'segment' ? segments[state.segmentIndex] : undefined;
+  const isWork = currentSegment?.type === 'combo';
+  const isRest = currentSegment?.type === 'rest';
+
   const logSession = useCallback(
     (current: PlayerState) => {
       if (hasLoggedRef.current) {
         return;
       }
       hasLoggedRef.current = true;
-      addSession(buildSession(t, workout, combos, workSeconds, restSeconds, current)).then(() =>
+      addSession(buildSession(t, workout, segments, current)).then(() =>
         rescheduleNotifications(t),
       );
     },
-    [t, workout, combos, workSeconds, restSeconds],
+    [t, workout, segments],
   );
 
   const exitToDashboard = () => {
@@ -128,20 +137,19 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
   };
 
   useEffect(() => {
-    // Every phase change past the initial prep countdown is a work-boundary:
-    // entering 'work' is a round start, leaving it (into 'rest' or 'done') is
-    // a round end. Skip the mount into 'ready' — that's just prep starting.
+    // Every segment boundary past the initial prep countdown rings the bell, including
+    // combo → combo, so the switch to a new combo is audible. Skip the mount into 'ready'.
     if (state.phase !== 'ready') {
       playBell();
     }
-  }, [state.phase]);
+  }, [state.phase, state.segmentIndex]);
 
-  // Fresh tip for every rest period (the prep countdown gets the one picked on mount).
+  // Fresh tip for every rest segment (the prep countdown gets the one picked on mount).
   useEffect(() => {
-    if (state.phase === 'rest') {
+    if (isRest) {
       setTipKey(prev => pickRandomTip(prev));
     }
-  }, [state.phase, state.roundIndex]);
+  }, [isRest, state.segmentIndex]);
 
   useEffect(() => {
     if (isPaused || state.phase === 'done') {
@@ -155,20 +163,15 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
         if (prev.secondsLeft > 1) {
           return { ...prev, secondsLeft: prev.secondsLeft - 1 };
         }
-        if (prev.phase === 'ready') {
-          return { phase: 'work', roundIndex: 0, secondsLeft: workSeconds };
+        const nextIndex = prev.phase === 'ready' ? 0 : prev.segmentIndex + 1;
+        if (nextIndex >= segments.length) {
+          return { phase: 'done', segmentIndex: prev.segmentIndex, secondsLeft: 0 };
         }
-        if (prev.phase === 'work') {
-          if (prev.roundIndex >= workout.rounds - 1) {
-            return { phase: 'done', roundIndex: prev.roundIndex, secondsLeft: 0 };
-          }
-          return { phase: 'rest', roundIndex: prev.roundIndex, secondsLeft: restSeconds };
-        }
-        return { phase: 'work', roundIndex: prev.roundIndex + 1, secondsLeft: workSeconds };
+        return { phase: 'segment', segmentIndex: nextIndex, secondsLeft: segments[nextIndex].seconds };
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [isPaused, state.phase, workSeconds, restSeconds, workout.rounds]);
+  }, [isPaused, state.phase, segments]);
 
   // Keep the screen on while the timer is running; let it sleep again once paused or finished.
   const isActive = !isPaused && state.phase !== 'done';
@@ -201,7 +204,9 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
 
   const extendRest = () => {
     setState(prev =>
-      prev.phase === 'rest' ? { ...prev, secondsLeft: prev.secondsLeft + REST_EXTENSION_SECONDS } : prev,
+      prev.phase === 'segment' && segments[prev.segmentIndex].type === 'rest'
+        ? { ...prev, secondsLeft: prev.secondsLeft + REST_EXTENSION_SECONDS }
+        : prev,
     );
   };
 
@@ -222,7 +227,7 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
       <View style={[styles.container, styles.doneContainer]}>
         <Text style={styles.doneTitle}>{t('player.doneTitle')}</Text>
         <Text style={styles.doneSubtitle}>
-          {t('player.doneSubtitle', { rounds: workout.rounds, name: getWorkoutName(t, workout) })}
+          {t('player.doneSubtitle', { rounds: totalRounds, name: getWorkoutName(t, workout) })}
         </Text>
         <TouchableOpacity style={styles.primaryButton} activeOpacity={0.85} onPress={exitToDashboard}>
           <Text style={styles.primaryButtonText}>{t('player.doneBtn')}</Text>
@@ -236,13 +241,14 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
     );
   }
 
-  const activeComboIndex =
-    state.phase === 'work' ? state.roundIndex : state.phase === 'ready' ? 0 : state.roundIndex + 1;
-  const activeCombo = combos[activeComboIndex % combos.length];
-  const isWork = state.phase === 'work';
-  const phaseLabelKey = state.phase === 'work' ? 'player.work' : state.phase === 'ready' ? 'player.ready' : 'player.rest';
-  const phaseLabelStyle =
-    state.phase === 'work' ? styles.phaseLabelWork : state.phase === 'ready' ? styles.phaseLabelReady : styles.phaseLabelRest;
+  // During work: the combo being thrown. During prep / rest: the next combo coming up
+  // (none if only rest is left).
+  const activeCombo = findNextCombo(segments, state.phase === 'ready' ? 0 : state.segmentIndex);
+  // Header round: the combo being thrown, or during rest the one just finished.
+  const combosSoFar = countRounds(segments.slice(0, state.phase === 'ready' ? 0 : state.segmentIndex + 1));
+  const currentRound = Math.min(totalRounds, Math.max(1, combosSoFar));
+  const phaseLabelKey = isWork ? 'player.work' : isRest ? 'player.rest' : 'player.ready';
+  const phaseLabelStyle = isWork ? styles.phaseLabelWork : isRest ? styles.phaseLabelRest : styles.phaseLabelReady;
 
   return (
     <View style={styles.container}>
@@ -251,7 +257,7 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
           <Text style={styles.exitText}>{t('player.exit')}</Text>
         </TouchableOpacity>
         <Text style={styles.roundIndicator}>
-          {t('player.round', { current: state.roundIndex + 1, total: workout.rounds })}
+          {t('player.round', { current: currentRound, total: totalRounds })}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -264,30 +270,34 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
         )}
       </View>
 
-      <View style={styles.comboSection}>
-        <Text style={styles.comboSectionLabel}>
-          {isWork ? t('player.currentCombo') : t('player.nextUp')}
-        </Text>
-        <Text style={styles.comboName}>{getComboName(t, activeCombo)}</Text>
-        <View style={styles.chipsRow}>
-          {activeCombo.sequence.map((step, index) => {
-            const punch = getStepPunch(step);
-            return (
-              <View key={`${step}-${index}`} style={styles.chip}>
-                <View style={styles.chipBadge}>
-                  <Text style={styles.chipBadgeText}>{index + 1}</Text>
+      {activeCombo ? (
+        <View style={styles.comboSection}>
+          <Text style={styles.comboSectionLabel}>
+            {isWork ? t('player.currentCombo') : t('player.nextUp')}
+          </Text>
+          <Text style={styles.comboName}>{getComboName(t, activeCombo)}</Text>
+          <View style={styles.chipsRow}>
+            {activeCombo.sequence.map((step, index) => {
+              const punch = getStepPunch(step);
+              return (
+                <View key={`${step}-${index}`} style={styles.chip}>
+                  <View style={styles.chipBadge}>
+                    <Text style={styles.chipBadgeText}>{index + 1}</Text>
+                  </View>
+                  {punch ? <PunchIllustration punch={punch} size={108} /> : <View style={styles.chipArtEmpty} />}
+                  <Text style={styles.chipLabel} numberOfLines={2}>
+                    {describeMove(t, step)}
+                  </Text>
                 </View>
-                {punch ? <PunchIllustration punch={punch} size={108} /> : <View style={styles.chipArtEmpty} />}
-                <Text style={styles.chipLabel} numberOfLines={2}>
-                  {describeMove(t, step)}
-                </Text>
-              </View>
-            );
-          })}
+              );
+            })}
+          </View>
         </View>
-      </View>
+      ) : (
+        <View style={styles.comboSection} />
+      )}
 
-      {state.phase !== 'work' && (
+      {!isWork && (
         <Text style={styles.tipText}>
           <Text style={styles.tipLabel}>{t('player.tip')}: </Text>
           {t(tipKey)}
@@ -295,7 +305,7 @@ export default function WorkoutPlayerScreen({ navigation, route }: Props) {
       )}
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-        {state.phase === 'rest' && (
+        {isRest && (
           <TouchableOpacity style={styles.extendRestButton} activeOpacity={0.85} onPress={extendRest}>
             <Text style={styles.extendRestButtonText}>{t('player.addRest')}</Text>
           </TouchableOpacity>
