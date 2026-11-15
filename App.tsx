@@ -9,6 +9,7 @@ import SplashScreen from './src/screens/SplashScreen';
 import StatsScreen from './src/screens/StatsScreen';
 import TrainingScheduleScreen from './src/screens/TrainingScheduleScreen';
 import WelcomeScreen from './src/screens/WelcomeScreen';
+import WorkoutEditorScreen from './src/screens/WorkoutEditorScreen';
 import WorkoutListScreen from './src/screens/WorkoutListScreen';
 import WorkoutPlayerScreen from './src/screens/WorkoutPlayerScreen';
 import WorkoutSetupScreen from './src/screens/WorkoutSetupScreen';
@@ -36,6 +37,7 @@ export default function App() {
             <Stack.Screen name="Menu" component={MenuScreen} />
             <Stack.Screen name="WorkoutList" component={WorkoutListScreen} />
             <Stack.Screen name="WorkoutSetup" component={WorkoutSetupScreen} />
+            <Stack.Screen name="WorkoutEditor" component={WorkoutEditorScreen} />
             <Stack.Screen name="WorkoutPlayer" component={WorkoutPlayerScreen} />
           </Stack.Navigator>
         </NavigationContainer>

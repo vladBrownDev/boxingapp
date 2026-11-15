@@ -13,6 +13,7 @@ import HeartIcon from '../components/HeartIcon';
 import WeekStrip from '../components/WeekStrip';
 import { getPunchLabel } from '../data/punchNotation';
 import { countRounds, getSuggestedWorkout, getWorkoutDurationMinutes, getWorkoutName, WORKOUTS } from '../data/workouts';
+import { useCustomWorkouts } from '../hooks/useCustomWorkouts';
 import { useFavorites } from '../hooks/useFavorites';
 import { useWorkoutStats } from '../hooks/useWorkoutStats';
 import { useTranslation } from '../i18n/LanguageContext';
@@ -37,20 +38,21 @@ export default function DashboardScreen({ navigation }: Props) {
   const greeting = t(useMemo(getGreetingKey, []));
   const { sessions, trainingDays, allTimeStats, punchBreakdown } = useWorkoutStats();
   const { favoriteIds, toggleFavorite } = useFavorites();
+  const customWorkouts = useCustomWorkouts();
 
   const suggested = useMemo(() => getSuggestedWorkout(punchBreakdown), [punchBreakdown]);
 
   const recentWorkouts = useMemo(
     () =>
       sessions.slice(0, 5).map(session => {
-        const workout = WORKOUTS.find(w => w.id === session.workoutId);
+        const workout = [...WORKOUTS, ...customWorkouts].find(w => w.id === session.workoutId);
         return {
           session,
           workout,
           isFavorite: favoriteIds.includes(session.workoutId),
         };
       }),
-    [sessions, favoriteIds],
+    [sessions, favoriteIds, customWorkouts],
   );
 
   const handleTabPress = (tab: NavTab) => {

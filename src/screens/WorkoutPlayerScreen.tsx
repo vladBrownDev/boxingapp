@@ -6,11 +6,12 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { playBell } from '../audio/bell';
 import NotificationPrompt from '../components/NotificationPrompt';
 import PunchIllustration from '../components/PunchIllustration';
-import { Combo, getComboById, getComboName } from '../data/combos';
+import { ComboInfo, getComboName } from '../data/combos';
 import { describeMove, getStepPunch } from '../data/punchNotation';
 import { pickRandomTip } from '../data/tips';
 import {
   countRounds,
+  getSegmentCombo,
   getSegmentsTotalSeconds,
   getWorkoutName,
   Workout,
@@ -47,11 +48,11 @@ function formatTime(totalSeconds: number): string {
 }
 
 /** First combo segment at or after `fromIndex`. */
-function findNextCombo(segments: WorkoutSegment[], fromIndex: number): Combo | undefined {
+function findNextCombo(segments: WorkoutSegment[], fromIndex: number): ComboInfo | undefined {
   for (let i = fromIndex; i < segments.length; i++) {
     const segment = segments[i];
     if (segment.type === 'combo') {
-      return getComboById(segment.comboId);
+      return getSegmentCombo(segment);
     }
   }
   return undefined;
@@ -76,7 +77,10 @@ function buildSession(
     activeDuration += Math.max(0, current.seconds - state.secondsLeft);
   }
 
-  const comboIds = finished.flatMap(s => (s.type === 'combo' ? [s.comboId] : []));
+  const finishedCombos = finished.flatMap(s => {
+    const resolved = s.type === 'combo' ? getSegmentCombo(s) : undefined;
+    return resolved ? [resolved] : [];
+  });
   const firstWork = segments.find(s => s.type === 'combo');
   const firstRest = segments.find(s => s.type === 'rest');
 
@@ -87,12 +91,13 @@ function buildSession(
     workoutName: getWorkoutName(t, workout),
     level: workout.level,
     rounds: countRounds(segments),
-    roundsCompleted: comboIds.length,
+    roundsCompleted: finishedCombos.length,
     workTime: firstWork?.seconds ?? 0,
     restTime: firstRest?.seconds ?? 0,
     totalDuration: getSegmentsTotalSeconds(segments),
     activeDuration,
-    comboIds,
+    comboIds: finishedCombos.map(c => c.id),
+    comboSequences: finishedCombos.map(c => c.sequence),
     completed: state.phase === 'done',
   };
 }

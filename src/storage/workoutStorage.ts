@@ -20,6 +20,9 @@ export interface WorkoutSession {
   totalDuration: number;   // planned total seconds
   activeDuration: number;  // actual seconds trained
   comboIds: string[];      // combos cycled through, one per completed round
+  /** Move sequence of each completed round, parallel to comboIds. Needed for custom combos,
+   * whose ids can't be looked up later. Absent on sessions logged before custom combos. */
+  comboSequences?: string[][];
   completed: boolean;      // false if the session was exited before the last round
 }
 
@@ -219,13 +222,12 @@ export function getPunchBreakdown(sessions: WorkoutSession[]): PunchBreakdownEnt
   const roundCounts = new Map<PunchCode, number>(PUNCHES.map(p => [p.code, 0]));
 
   for (const session of sessions) {
-    for (const comboId of session.comboIds) {
-      const combo = getComboById(comboId);
-      if (!combo) {
-        continue;
-      }
+    const roundSequences =
+      session.comboSequences ??
+      session.comboIds.map(comboId => getComboById(comboId)?.sequence ?? []);
+    for (const sequence of roundSequences) {
       const punchesInRound = new Set<PunchCode>();
-      for (const step of combo.sequence) {
+      for (const step of sequence) {
         for (const move of step.split('+')) {
           const punch = (PUNCH_BY_CODE as Record<string, { code: PunchCode } | undefined>)[move];
           if (punch) {

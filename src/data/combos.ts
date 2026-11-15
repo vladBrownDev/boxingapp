@@ -3,11 +3,17 @@ import { TranslationKey } from '../i18n/translations';
 
 export type ComboLevel = 'Beginner' | 'Intermediate' | 'Advanced';
 
-export interface Combo {
+/** What screens need to show and run a combo, whether built-in or user-built. */
+export interface ComboInfo {
   id: string;
-  level: ComboLevel;
   /** Sequence of move codes from punchNotation.ts, in throwing order. */
   sequence: string[];
+  /** User-given name. Only set on custom combos; built-in names come from translations. */
+  name?: string;
+}
+
+export interface Combo extends ComboInfo {
+  level: ComboLevel;
 }
 
 export const COMBOS: Combo[] = [
@@ -67,6 +73,6 @@ export function getComboById(id: string): Combo | undefined {
   return COMBOS.find(combo => combo.id === id);
 }
 
-export function getComboName(t: TFunction, combo: Combo): string {
-  return t(`${combo.id}.name` as TranslationKey);
+export function getComboName(t: TFunction, combo: ComboInfo): string {
+  return combo.name ?? t(`${combo.id}.name` as TranslationKey);
 }

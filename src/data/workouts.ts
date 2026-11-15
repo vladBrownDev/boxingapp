@@ -1,22 +1,49 @@
 import { TFunction } from '../i18n/LanguageContext';
 import { TranslationKey } from '../i18n/translations';
-import { Combo, ComboLevel, getComboById } from './combos';
+import { ComboInfo, ComboLevel, getComboById } from './combos';
 import { PUNCH_BY_CODE, PunchCode } from './punchNotation';
 
 /** One timed block of a workout: either throwing a combo, or resting. Segments run in
  * order, so two combo segments can follow each other with no rest in between. */
 export type WorkoutSegment =
+  /** Built-in combo, referenced by id (used by the built-in programs). */
   | { type: 'combo'; comboId: string; seconds: number }
+  /** User-built combo, stored inline (used by custom workouts). */
+  | { type: 'combo'; custom: CustomCombo; seconds: number }
   | { type: 'rest'; seconds: number };
+
+export type ComboSegment = Extract<WorkoutSegment, { type: 'combo' }>;
+
+/** A combo the user assembled move by move in the workout editor. */
+export interface CustomCombo {
+  id: string;
+  name: string;
+  sequence: string[];
+}
+
+/** Resolves a combo segment to the combo it runs, built-in or custom. */
+export function getSegmentCombo(segment: ComboSegment): ComboInfo | undefined {
+  return 'custom' in segment ? segment.custom : getComboById(segment.comboId);
+}
 
 export interface Workout {
   id: string;
   level: ComboLevel;
   segments: WorkoutSegment[];
+  /** User-given name. Only set on custom workouts; built-in names come from translations. */
+  name?: string;
+  /** True for workouts the user built in the workout editor. */
+  isCustom?: boolean;
 }
 
 export const DEFAULT_COMBO_SECONDS = 120;
 export const DEFAULT_REST_SECONDS = 60;
+
+/** Allowed segment lengths, shared by the setup steppers and the workout editor. */
+export const SEGMENT_LIMITS = {
+  combo: { min: 30, max: 300, step: 10 },
+  rest: { min: 10, max: 120, step: 10 },
+} as const;
 
 export function combo(comboId: string, seconds = DEFAULT_COMBO_SECONDS): WorkoutSegment {
   return { type: 'combo', comboId, seconds };
@@ -66,7 +93,7 @@ export function getWorkoutById(id: string): Workout | undefined {
 }
 
 export function getWorkoutName(t: TFunction, workout: Workout): string {
-  return t(`${workout.id}.name` as TranslationKey);
+  return workout.name ?? t(`${workout.id}.name` as TranslationKey);
 }
 
 /** Number of combo segments, i.e. what the UI calls "rounds". */
@@ -79,16 +106,17 @@ export function getSegmentsTotalSeconds(segments: WorkoutSegment[]): number {
 }
 
 /** Distinct combos used by the workout, in order of first appearance. */
-export function getWorkoutCombos(workout: Workout): Combo[] {
-  const ids = new Set<string>();
+export function getWorkoutCombos(workout: Workout): ComboInfo[] {
+  const byId = new Map<string, ComboInfo>();
   for (const segment of workout.segments) {
     if (segment.type === 'combo') {
-      ids.add(segment.comboId);
+      const resolved = getSegmentCombo(segment);
+      if (resolved && !byId.has(resolved.id)) {
+        byId.set(resolved.id, resolved);
+      }
     }
   }
-  return Array.from(ids)
-    .map(getComboById)
-    .filter((c): c is Combo => c !== undefined);
+  return Array.from(byId.values());
 }
 
 export function getWorkoutDurationMinutes(workout: Workout): number {

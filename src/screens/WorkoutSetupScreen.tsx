@@ -9,6 +9,7 @@ import {
   getSegmentsTotalSeconds,
   getWorkoutCombos,
   getWorkoutName,
+  SEGMENT_LIMITS,
   WorkoutSegment,
 } from '../data/workouts';
 import { useTranslation } from '../i18n/LanguageContext';
@@ -22,13 +23,8 @@ export interface WorkoutRunConfig {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutSetup'>;
 
-const WORK_STEP = 10;
-const WORK_MIN = 30;
-const WORK_MAX = 300;
-
-const REST_STEP = 10;
-const REST_MIN = 10;
-const REST_MAX = 120;
+const { min: WORK_MIN, max: WORK_MAX, step: WORK_STEP } = SEGMENT_LIMITS.combo;
+const { min: REST_MIN, max: REST_MAX, step: REST_STEP } = SEGMENT_LIMITS.rest;
 
 function formatDuration(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
@@ -93,7 +89,16 @@ export default function WorkoutSetupScreen({ navigation, route }: Props) {
           <Text style={styles.backArrow}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>{getWorkoutName(t, workout)}</Text>
-        <View style={styles.headerSpacer} />
+        {workout.isCustom ? (
+          <TouchableOpacity
+            style={styles.headerAction}
+            onPress={() => navigation.navigate('WorkoutEditor', { workout })}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={styles.headerActionText}>{t('workoutSetup.edit')}</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.headerSpacer} />
+        )}
       </View>
 
       <ScrollView
@@ -207,6 +212,15 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 40,
+  },
+  headerAction: {
+    width: 40,
+    alignItems: 'flex-end',
+  },
+  headerActionText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: colors.muted,
   },
   scroll: { flex: 1 },
   scrollContent: { padding: 20 },
